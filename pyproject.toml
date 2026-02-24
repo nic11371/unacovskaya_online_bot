@@ -11,3 +11,8 @@ dependencies = [
     "psycopg2-binary>=2.9.11",
     "vkbottle>=4.6.2",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.2",
+]
