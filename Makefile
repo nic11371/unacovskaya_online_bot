@@ -5,16 +5,16 @@ init:
 	uv init
 
 migrations:
-	python manage.py makemigrations
+	uv run python manage.py makemigrations
 
 migrate:
-	python manage.py migrate
+	uv run python manage.py migrate
 
 start:
-	python manage.py runserver
+	uv run python manage.py runserver
 
-app:
-	python manage.py startapp $(name)
+start-tg:
+	uv run python manage.py run_tg_bot 
 
 lint:
 	uv run ruff check .
