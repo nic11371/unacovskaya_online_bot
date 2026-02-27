@@ -12,6 +12,7 @@ from unakovskaya_bot.variables import \
     TG_BOT_HOST, \
     TG_BOT_PORT, \
     BASE_URL
+from unakovskaya_bot.app.clients.tg.handlers.users import user as user_router
 
 
 class Command(BaseCommand):
@@ -36,15 +37,15 @@ class Command(BaseCommand):
         storage = MemoryStorage()
         dp = Dispatcher(storage=storage)
 
-        # Здесь нужно будет зарегистрировать ваши обработчики (хендлеры)
-        # Пример:
-        # from unakovskaya_bot.app.handlers import user_handlers
-        # dp.include_router(user_handlers.router)
+        # Регистрация роутера из userkb.py
+        dp.include_router(user_router)
         logger.info("Регистрация обработчиков...")
 
         async def on_startup(bot: Bot):
             """Действия при запуске: установка вебхука."""
-            webhook_url = f"{BASE_URL.strip('/')}{WEBHOOK_PATH_TG}"
+            # Используем WEBHOOK_DOMAIN если он есть, иначе BASE_URL, но лучше иметь отдельную переменную
+            domain = BASE_URL.strip('/')
+            webhook_url = f"{domain}{WEBHOOK_PATH_TG}"
             await bot.set_webhook(webhook_url)
             logger.info(f"Вебхук установлен на: {webhook_url}")
 
