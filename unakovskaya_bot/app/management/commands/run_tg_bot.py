@@ -13,6 +13,9 @@ from unakovskaya_bot.variables import \
     TG_BOT_PORT, \
     BASE_URL
 from unakovskaya_bot.app.clients.tg.handlers.users import user as user_router
+# Импортируем модуль с командами менеджера, чтобы зарегистрировались хендлеры
+import unakovskaya_bot.app.clients.tg.handlers.manager_commands
+from unakovskaya_bot.app.clients.tg.router import router as admin_router
 
 
 class Command(BaseCommand):
@@ -39,6 +42,7 @@ class Command(BaseCommand):
 
         # Регистрация роутера из userkb.py
         dp.include_router(user_router)
+        dp.include_router(admin_router)
         logger.info("Регистрация обработчиков...")
 
         async def on_startup(bot: Bot):
