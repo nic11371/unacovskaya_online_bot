@@ -1,5 +1,4 @@
 import logging
-
 from django.core.management.base import BaseCommand
 from aiohttp import web
 from aiogram import Bot, Dispatcher
@@ -12,10 +11,10 @@ from unakovskaya_bot.variables import \
     TG_BOT_HOST, \
     TG_BOT_PORT, \
     BASE_URL
-from unakovskaya_bot.app.clients.tg.handlers.users import user as user_router
-# Импортируем модуль с командами менеджера, чтобы зарегистрировались хендлеры
-import unakovskaya_bot.app.clients.tg.handlers.manager_commands
-from unakovskaya_bot.app.clients.tg.router import router as admin_router
+from unakovskaya_bot.app.clients.tg.router import router
+# Импортируем модули с хендлерами, чтобы код внутри них выполнился
+from unakovskaya_bot.app.clients.tg.handlers import \
+    commands, manage_links, manage_admin
 
 
 class Command(BaseCommand):
@@ -40,14 +39,13 @@ class Command(BaseCommand):
         storage = MemoryStorage()
         dp = Dispatcher(storage=storage)
 
-        # Регистрация роутера из userkb.py
-        dp.include_router(user_router)
-        dp.include_router(admin_router)
+        # Регистрация единого роутера
+        dp.include_router(router)
         logger.info("Регистрация обработчиков...")
 
         async def on_startup(bot: Bot):
             """Действия при запуске: установка вебхука."""
-            # Используем WEBHOOK_DOMAIN если он есть, иначе BASE_URL, но лучше иметь отдельную переменную
+            # Используем WEBHOOK_DOMAIN если он есть, иначе BASE_URL
             domain = BASE_URL.strip('/')
             webhook_url = f"{domain}{WEBHOOK_PATH_TG}"
             await bot.set_webhook(webhook_url)

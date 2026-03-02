@@ -21,7 +21,7 @@ def get_formatted_links_text():
     text_parts = []
     for link in links:
         # Формат: "1. Название (ссылка)" или любой другой
-        part = f"{link.order}. {link.title}\n{link.message_text}\n🔗 {link.url}"
+        part = f"{link.order}. {link.title}\n{link.message_text}\n {link.url}"
         text_parts.append(part)
 
     return "\n\n".join(text_parts)

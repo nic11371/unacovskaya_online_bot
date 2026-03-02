@@ -25,4 +25,6 @@ WEBHOOK_PATH_VK = f'/{VK_BOT_TOKEN}'
 WEBHOOK_PATH_TG = f'/{TG_BOT_TOKEN}'
 TG_BOT_HOST = os.getenv("TG_BOT_HOST", "0.0.0.0")
 TG_BOT_PORT = int(os.getenv("TG_BOT_PORT") or 8080)
-TG_BOT_USER_ADMIN = int(os.getenv("TG_BOT_USER_ADMIN"))
+TG_BOT_USER_ADMIN = int(os.getenv("TG_BOT_USER_ADMIN") or 0)
+
+DELAY_LINK = int(os.getenv('DELAY_LINK') or 5)
