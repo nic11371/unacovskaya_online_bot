@@ -5,6 +5,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, \
     setup_application
 from aiogram.fsm.storage.memory import MemoryStorage
+from unakovskaya_bot.static.texts import TEXTS
 from unakovskaya_bot.variables import \
     TG_BOT_TOKEN, \
     WEBHOOK_PATH_TG, \
@@ -18,7 +19,7 @@ from unakovskaya_bot.app.clients.tg.handlers import \
 
 
 class Command(BaseCommand):
-    help = "Запускает телеграм-бота в режиме вебхука"
+    help = TEXTS.get('text_log_help')
 
     def handle(self, *args, **options):
         # Настройка логирования
@@ -27,11 +28,10 @@ class Command(BaseCommand):
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
         logger = logging.getLogger(__name__)
-        logger.info("Запуск телеграм-бота...")
+        logger.info(TEXTS.get('text_log_start'))
 
         if not BASE_URL:
-            logger.error(
-                "Переменная BASE_URL не установлена в .env файле!")
+            logger.error(TEXTS.get('text_log_variable_err'))
             return
 
         # Инициализация бота и диспетчера
@@ -41,7 +41,7 @@ class Command(BaseCommand):
 
         # Регистрация единого роутера
         dp.include_router(router)
-        logger.info("Регистрация обработчиков...")
+        logger.info(TEXTS.get('text_log_register'))
 
         async def on_startup(bot: Bot):
             """Действия при запуске: установка вебхука."""
@@ -49,14 +49,14 @@ class Command(BaseCommand):
             domain = BASE_URL.strip('/')
             webhook_url = f"{domain}{WEBHOOK_PATH_TG}"
             await bot.set_webhook(webhook_url)
-            logger.info(f"Вебхук установлен на: {webhook_url}")
+            logger.info(f"{TEXTS.get('text_log_webhook_set')} {webhook_url}")
 
         async def on_shutdown(bot: Bot):
             """Действия при остановке: удаление вебхука."""
-            logger.info("Остановка бота...")
+            logger.info(TEXTS.get('text_log_stop_bot'))
             await bot.delete_webhook(drop_pending_updates=True)
             await bot.session.close()
-            logger.info("Вебхук удален.")
+            logger.info(TEXTS.get('text_log_webhook_rem'))
 
         dp.startup.register(on_startup)
         dp.shutdown.register(on_shutdown)
@@ -68,5 +68,6 @@ class Command(BaseCommand):
         webhook_requests_handler.register(app, path=WEBHOOK_PATH_TG)
         setup_application(app, dp, bot=bot)
 
-        logger.info(f"Запуск на http://{TG_BOT_HOST}:{TG_BOT_PORT}")
+        logger.info(
+            f"{TEXTS.get('text_log_http')}{TG_BOT_HOST}:{TG_BOT_PORT}")
         web.run_app(app, host=TG_BOT_HOST, port=TG_BOT_PORT)
