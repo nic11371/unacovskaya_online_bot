@@ -17,7 +17,7 @@ start-tg:
 	uv run python manage.py run_tg_bot
 
 start-vk:
-	uv run python manage.py run_vk_bot 
+	uv run python manage.py run_vk_bot
 
 lint:
 	uv run ruff check .

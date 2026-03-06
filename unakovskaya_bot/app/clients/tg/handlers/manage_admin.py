@@ -13,7 +13,7 @@ from unakovskaya_bot.app.clients.tg.keyboards.userkb import \
 
 
 async def set_admin(message: Message):
-    await set_user_admin(message.from_user.id)
+    await set_user_admin(message.from_user.id, platform='tg')
     await message.answer(TEXTS.get('text_welcome_admin'))
 
 

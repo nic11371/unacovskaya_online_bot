@@ -46,8 +46,11 @@ def is_user_admin(user_id: int, platform: str) -> bool:
 
 
 @sync_to_async
-def set_user_admin(user_id):
-    User.objects.filter(tg_id=user_id).update(is_admin=True)
+def set_user_admin(user_id, platform='tg'):
+    if platform == 'tg':
+        User.objects.filter(tg_id=user_id).update(is_admin=True)
+    elif platform == 'vk':
+        User.objects.filter(vk_id=user_id).update(is_admin=True)
 
 
 @sync_to_async

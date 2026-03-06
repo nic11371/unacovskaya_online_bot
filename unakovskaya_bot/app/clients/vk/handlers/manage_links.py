@@ -1,13 +1,14 @@
 import asyncio
-from aiogram.types import Message, CallbackQuery
-from aiogram import F
+from vkbottle.bot import Message, MessageEvent
+from vkbottle import GroupEventType
+from vkbottle.dispatch.rules.base import PayloadRule
 from unakovskaya_bot.variables import DELAY_LINK
 from unakovskaya_bot.static.texts import TEXTS
 from unakovskaya_bot.app.videolinks_services import get_active_links, \
     delete_video_link
-from unakovskaya_bot.app.clients.tg.router import router
-from unakovskaya_bot.app.clients.tg.keyboards.userkb import next_link_btn
-from unakovskaya_bot.app.clients.tg.handlers.manage_admin import \
+from unakovskaya_bot.app.clients.vk.labeler import chat_labeler
+from unakovskaya_bot.app.clients.vk.keyboards.userkb import next_link_btn
+from unakovskaya_bot.app.clients.vk.handlers.manage_admin import \
     show_links_list
 
 
@@ -20,7 +21,7 @@ async def get_links(message: Message):
         await message.answer(TEXTS.get('text_no_links'))
         return
 
-    user_id = message.from_user.id
+    user_id = message.from_id
     # Создаем событие для управления ожиданием
     if user_id not in user_events:
         user_events[user_id] = asyncio.Event()
@@ -42,7 +43,12 @@ async def get_links(message: Message):
             # Убираем кнопку у предыдущего сообщения
             if previous_msg:
                 try:
-                    await previous_msg.edit_reply_markup(reply_markup=None)
+                    # В VK редактируем сообщение, убирая клавиатуру
+                    await message.ctx_api.messages.edit(
+                        peer_id=message.peer_id,
+                        message_id=previous_msg,
+                        keyboard='{"buttons":[],"inline":true}'
+                    )
                 except Exception:
                     pass
 
@@ -52,33 +58,36 @@ async def get_links(message: Message):
                 keyboard = next_link_btn()
 
             text_part = f"{link.title}\n\n{link.message_text}\n\n{link.url}"
+            # message.answer возвращает ID сообщения (int)
             previous_msg = await message.answer(
-                text_part, reply_markup=keyboard)
+                text_part, keyboard=keyboard)
     finally:
         # Очищаем событие после завершения цикла
         if user_id in user_events:
             del user_events[user_id]
 
 
-@router.callback_query(F.data == "skip_link_delay")
-async def skip_delay_handler(callback: CallbackQuery):
-    user_id = callback.from_user.id
+@chat_labeler.raw_event(GroupEventType.MESSAGE_EVENT, MessageEvent, PayloadRule({"cmd": "skip_link_delay"}))
+async def skip_delay_handler(event: MessageEvent):
+    user_id = event.user_id
 
     # Если пользователь сейчас чего-то ждет, прерываем ожидание
     if user_id in user_events:
         user_events[user_id].set()
 
     # Сразу убираем кнопку, чтобы показать реакцию
-    await callback.message.edit_reply_markup(reply_markup=None)
-    await callback.answer()
+    try:
+        await event.edit_message(keyboard='{"buttons":[],"inline":true}')
+    except Exception:
+        pass
 
 
-@router.callback_query(F.data.startswith("del_link_"))
-async def delete_link_handler(callback: CallbackQuery):
-    link_id = int(callback.data.split("_")[-1])
+@chat_labeler.raw_event(GroupEventType.MESSAGE_EVENT, MessageEvent, PayloadRule({"cmd": "del_link"}))
+async def delete_link_handler(event: MessageEvent):
+    link_id = event.payload.get("id")
     if await delete_video_link(link_id):
-        await callback.answer(TEXTS.get('text_removed_link'))
+        await event.show_snackbar(TEXTS.get('text_removed_link'))
         # Обновляем список
-        await show_links_list(callback)
+        await show_links_list(event)
     else:
-        await callback.answer(TEXTS.get('text_error_removed'), show_alert=True)
+        await event.show_snackbar(TEXTS.get('text_error_removed'))

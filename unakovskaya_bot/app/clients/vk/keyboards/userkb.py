@@ -1,55 +1,77 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from vkbottle import Keyboard, KeyboardButtonColor, Text, Callback
 from unakovskaya_bot.static.texts import TEXTS
 
 
 def start_btn():
-    btn = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(
-                text="welcome_btn",
-                callback_data="welcome_btn")]
-        ]
+    """Кнопка старт/приветствие"""
+    keyboard = Keyboard(one_time=True, inline=False)
+    # Используем .add() вместо .schema() для простоты и читаемости
+    keyboard.add(
+        Text(TEXTS.get('btn_start', 'Start'), payload={"cmd": "welcome_btn"}),
+        color=KeyboardButtonColor.POSITIVE
     )
-    return btn
+    return keyboard.get_json()
 
 
 def get_admin_keyboard():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(
-            text=TEXTS.get('text_btn_art'),
-            callback_data="admin_article")],
-        [InlineKeyboardButton(
-            text=TEXTS.get('text_btn_link'),
-            callback_data="admin_add")],
-        [InlineKeyboardButton(
-            text=TEXTS.get('text_btn_rem'),
-            callback_data="admin_list")]
-    ])
+    """Главное меню админа (Inline)"""
+    keyboard = Keyboard(inline=True)
+
+    keyboard.add(
+        Callback(TEXTS.get('text_btn_art'), payload={"cmd": "admin_article"}),
+        color=KeyboardButtonColor.PRIMARY
+    )
+    keyboard.row()
+
+    keyboard.add(
+        Callback(TEXTS.get('text_btn_link'), payload={"cmd": "admin_add"}),
+        color=KeyboardButtonColor.POSITIVE
+    )
+    keyboard.row()
+
+    keyboard.add(
+        Callback(TEXTS.get('text_btn_rem'), payload={"cmd": "admin_list"}),
+        color=KeyboardButtonColor.NEGATIVE
+    )
+
+    return keyboard.get_json()
 
 
 def admin_back_btn():
-    return [InlineKeyboardButton(
-        text=TEXTS.get('text_btn_back'),
-        callback_data="admin_back")]
+    """Кнопка назад"""
+    keyboard = Keyboard(inline=True)
+    keyboard.add(
+        Callback(TEXTS.get('text_btn_back'), payload={"cmd": "admin_back"})
+    )
+    return keyboard.get_json()
 
 
-def del_link(btn_text, link):
-    return [InlineKeyboardButton(
-            text=btn_text,
-            callback_data=f"del_link_{link.id}")]
+def get_delete_links_keyboard(links):
+    """
+    Генерирует клавиатуру со списком ссылок для удаления.
+    Заменяет функцию del_link из aiogram версии.
+    """
+    keyboard = Keyboard(inline=True)
+
+    for link in links:
+        label = f"🗑 {link.order}. {link.title}"[:40]
+        keyboard.add(
+            Callback(label, payload={"cmd": "del_link", "id": link.id}),
+            color=KeyboardButtonColor.NEGATIVE
+        )
+        keyboard.row()
+
+    keyboard.add(
+        Callback(TEXTS.get('text_btn_back'), payload={"cmd": "admin_back"})
+    )
+    return keyboard.get_json()
 
 
 def next_link_btn():
-    return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(
-                text=TEXTS.get('text_btn_next'),
-                callback_data="skip_link_delay")]
-        ])
-
-
-def get_emails():
-    return InlineKeyboardButton(inline_keyboard=[
-        [InlineKeyboardButton(
-            text=TEXTS.get('text_get_email'),
-            callback_data="get_emails")]
-    ])
+    """Кнопка Далее"""
+    keyboard = Keyboard(inline=True)
+    keyboard.add(
+        Callback(TEXTS.get('text_btn_next'), payload={"cmd": "skip_link_delay"}),
+        color=KeyboardButtonColor.POSITIVE
+    )
+    return keyboard.get_json()

@@ -1,31 +1,34 @@
 import asyncio
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup
-from aiogram import F
-from aiogram.fsm.context import FSMContext
+from vkbottle import GroupEventType
+from vkbottle.bot import Message, MessageEvent
+from vkbottle.dispatch.rules.base import PayloadRule
 from unakovskaya_bot.static.texts import TEXTS
-from unakovskaya_bot.app.clients.tg.router import router
-from unakovskaya_bot.app.clients.tg.states.states import AddLinkState, \
+from unakovskaya_bot.app.clients.vk.labeler import chat_labeler
+from unakovskaya_bot.app.clients.vk.states.states import AddLinkState, \
     BroadcastState
 from unakovskaya_bot.app.videolinks_services import add_video_link, get_links
 from unakovskaya_bot.app.user_services import get_all_tg_users, set_user_admin
-from unakovskaya_bot.app.clients.tg.keyboards.userkb import \
-    get_admin_keyboard, admin_back_btn, del_link
+from unakovskaya_bot.app.clients.vk.keyboards.userkb import \
+    get_admin_keyboard, get_delete_links_keyboard
 
 
 async def set_admin(message: Message):
-    await set_user_admin(message.from_user.id)
+    await set_user_admin(message.from_id, platform='vk')
     await message.answer(TEXTS.get('text_welcome_admin'))
 
 
-@router.callback_query(F.data == "admin_article")
-async def start_article(callback: CallbackQuery, state: FSMContext):
-    await callback.message.answer(TEXTS.get('text_admin_article'))
-    await state.set_state(BroadcastState.waiting_for_message)
-    await callback.answer()
+@chat_labeler.raw_event(GroupEventType.MESSAGE_EVENT, MessageEvent, PayloadRule({"cmd": "admin_article"}))
+async def start_article(event: MessageEvent):
+    await event.edit_message(TEXTS.get('text_admin_article'))
+    await event.ctx_api.state_dispenser.set(
+        event.peer_id, BroadcastState.WAITING_FOR_MESSAGE)
 
 
-@router.message(BroadcastState.waiting_for_message, ~F.text.startswith('/'))
-async def process_broadcast(message: Message, state: FSMContext):
+@chat_labeler.message(state=BroadcastState.WAITING_FOR_MESSAGE)
+async def process_broadcast(message: Message):
+    if message.text.startswith('/'):
+        return
+
     users_ids = await get_all_tg_users()
     count = 0
 
@@ -33,48 +36,72 @@ async def process_broadcast(message: Message, state: FSMContext):
         f"{TEXTS.get('text_start_mailing')} {len(users_ids)}")
 
     for user_id in users_ids:
-        if user_id == message.from_user.id:
+        if user_id == message.from_id:
             continue
         try:
-            await message.copy_to(chat_id=user_id)
+            # Простая отправка текста. Для медиа нужна другая логика.
+            await message.ctx_api.messages.send(
+                peer_id=user_id, message=message.text, random_id=0)
             count += 1
             await asyncio.sleep(0.05)
         except Exception:
             pass
 
-    await status_msg.edit_text(
-        f"{TEXTS.get('text_finish_mailing')} {count} из {len(users_ids)}")
-    await state.clear()
+    await message.ctx_api.messages.edit(
+        peer_id=status_msg.peer_id,
+        message_id=status_msg.id,
+        message=f"{TEXTS.get(
+            'text_finish_mailing')} {count} из {len(users_ids)}"
+    )
+    await message.ctx_api.state_dispenser.delete(message.peer_id)
 
 
-@router.callback_query(F.data == "admin_add")
-async def start_add_link(callback: CallbackQuery, state: FSMContext):
-    await callback.message.answer(TEXTS.get('text_title_step'))
-    await state.set_state(AddLinkState.waiting_for_title)
-    await callback.answer()
+@chat_labeler.raw_event(GroupEventType.MESSAGE_EVENT, MessageEvent, PayloadRule({"cmd": "admin_add"}))
+async def start_add_link(event: MessageEvent):
+    await event.edit_message(TEXTS.get('text_title_step'))
+    await event.ctx_api.state_dispenser.set(
+        event.peer_id, AddLinkState.WAITING_FOR_TITLE)
 
 
-@router.message(AddLinkState.waiting_for_title, ~F.text.startswith('/'))
-async def process_title(message: Message, state: FSMContext):
-    await state.update_data(title=message.text)
+@chat_labeler.message(state=AddLinkState.WAITING_FOR_TITLE)
+async def process_title(message: Message):
+    if message.text.startswith('/'):
+        return
+
+    await message.ctx_api.state_dispenser.set(
+        message.peer_id,
+        AddLinkState.WAITING_FOR_TEXT,
+        title=message.text
+    )
     await message.answer(TEXTS.get('text_description_step'))
-    await state.set_state(AddLinkState.waiting_for_text)
 
 
-@router.message(AddLinkState.waiting_for_text, ~F.text.startswith('/'))
-async def process_text(message: Message, state: FSMContext):
-    await state.update_data(text=message.text)
+@chat_labeler.message(state=AddLinkState.WAITING_FOR_TEXT)
+async def process_text(message: Message):
+    if message.text.startswith('/'):
+        return
+
+    state_data = await message.ctx_api.state_dispenser.get(message.peer_id)
+    title = state_data.payload.get('title')
+
+    await message.ctx_api.state_dispenser.set(
+        message.peer_id,
+        AddLinkState.WAITING_FOR_URL,
+        title=title,
+        text=message.text
+    )
     await message.answer(TEXTS.get('text_link_step'))
-    await state.set_state(AddLinkState.waiting_for_url)
 
 
-@router.message(AddLinkState.waiting_for_url, ~F.text.startswith('/'))
-async def process_url(message: Message, state: FSMContext):
+@chat_labeler.message(state=AddLinkState.WAITING_FOR_URL)
+async def process_url(message: Message):
+    if message.text.startswith('/'): return
     if not message.text.startswith("http"):
         await message.answer(TEXTS.get('text_wrong_link'))
         return
 
-    data = await state.get_data()
+    state_data = await message.ctx_api.state_dispenser.get(message.peer_id)
+    data = state_data.payload
 
     new_order = await add_video_link(
         title=data['title'],
@@ -84,32 +111,26 @@ async def process_url(message: Message, state: FSMContext):
 
     await message.answer(
         f"{TEXTS.get('text_link_added')} {new_order}",
-        reply_markup=get_admin_keyboard())
-    await state.clear()
+        keyboard=get_admin_keyboard())
+    await message.ctx_api.state_dispenser.delete(message.peer_id)
 
 
-@router.callback_query(F.data == "admin_list")
-async def show_links_list(callback: CallbackQuery):
+@chat_labeler.raw_event(GroupEventType.MESSAGE_EVENT, MessageEvent, PayloadRule({"cmd": "admin_list"}))
+async def show_links_list(event: MessageEvent):
     links = await get_links()
 
     if not links:
-        await callback.answer(TEXTS.get('text_empty_list'), show_alert=True)
+        await event.show_snackbar(TEXTS.get('text_empty_list'))
         return
 
-    buttons = []
-    for link in links:
-        btn_text = f"🗑 {link.order}. {link.title}"
-        buttons.append(del_link(btn_text, link))
-
-    buttons.append(admin_back_btn())
-
-    await callback.message.edit_text(
+    keyboard_json = get_delete_links_keyboard(links)
+    await event.edit_message(
         TEXTS.get('text_btn_remove'),
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons)
+        keyboard=keyboard_json
     )
 
 
-@router.callback_query(F.data == "admin_back")
-async def admin_back(callback: CallbackQuery):
-    await callback.message.edit_text(
-        TEXTS.get('text_admin_panel'), reply_markup=get_admin_keyboard())
+@chat_labeler.raw_event(GroupEventType.MESSAGE_EVENT, MessageEvent, PayloadRule({"cmd": "admin_back"}))
+async def admin_back(event: MessageEvent):
+    await event.edit_message(
+        TEXTS.get('text_admin_panel'), keyboard=get_admin_keyboard())
