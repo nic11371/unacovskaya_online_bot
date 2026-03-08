@@ -20,6 +20,10 @@ class Command(BaseCommand):
         # Инициализация бота
         bot = Bot(token=VK_BOT_TOKEN)
 
+        # Прокидываем state_dispenser в объект api,
+        # чтобы он был доступен в хендлерах через ctx_api
+        bot.api.state_dispenser = bot.state_dispenser
+
         # Загружаем хендлеры из внешних файлов (через labeler)
         # Теперь chat_labeler не пустой, т.к. модуль commands был импортирован
         bot.labeler.load(chat_labeler)

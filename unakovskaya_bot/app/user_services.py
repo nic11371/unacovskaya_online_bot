@@ -54,11 +54,20 @@ def set_user_admin(user_id, platform='tg'):
 
 
 @sync_to_async
-def unset_user_admin(user_id):
-    User.objects.filter(tg_id=user_id).update(is_admin=False)
+def unset_user_admin(user_id, platform='tg'):
+    if platform == 'tg':
+        User.objects.filter(tg_id=user_id).update(is_admin=False)
+    elif platform == 'vk':
+        User.objects.filter(vk_id=user_id).update(is_admin=False)
 
 
 @sync_to_async
 def get_all_tg_users():
     return list(User.objects.filter(
         tg_id__isnull=False).values_list('tg_id', flat=True))
+
+
+@sync_to_async
+def get_all_vk_users():
+    return list(User.objects.filter(
+        vk_id__isnull=False).values_list('vk_id', flat=True))

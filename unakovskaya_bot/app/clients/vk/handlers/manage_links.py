@@ -1,7 +1,7 @@
 import asyncio
 from vkbottle.bot import Message, MessageEvent
 from vkbottle import GroupEventType
-from vkbottle.dispatch.rules.base import PayloadRule
+from vkbottle.dispatch.rules.base import FuncRule, PayloadRule
 from unakovskaya_bot.variables import DELAY_LINK
 from unakovskaya_bot.static.texts import TEXTS
 from unakovskaya_bot.app.videolinks_services import get_active_links, \
@@ -10,6 +10,7 @@ from unakovskaya_bot.app.clients.vk.labeler import chat_labeler
 from unakovskaya_bot.app.clients.vk.keyboards.userkb import next_link_btn
 from unakovskaya_bot.app.clients.vk.handlers.manage_admin import \
     show_links_list
+from unakovskaya_bot.app.clients.vk.utils import answer_event
 
 
 user_events = {}
@@ -67,7 +68,10 @@ async def get_links(message: Message):
             del user_events[user_id]
 
 
-@chat_labeler.raw_event(GroupEventType.MESSAGE_EVENT, MessageEvent, PayloadRule({"cmd": "skip_link_delay"}))
+@chat_labeler.raw_event(
+    GroupEventType.MESSAGE_EVENT,
+    MessageEvent,
+    PayloadRule({"cmd": "skip_link_delay"}))
 async def skip_delay_handler(event: MessageEvent):
     user_id = event.user_id
 
@@ -81,8 +85,13 @@ async def skip_delay_handler(event: MessageEvent):
     except Exception:
         pass
 
+    await answer_event(event)
 
-@chat_labeler.raw_event(GroupEventType.MESSAGE_EVENT, MessageEvent, PayloadRule({"cmd": "del_link"}))
+
+@chat_labeler.raw_event(
+    GroupEventType.MESSAGE_EVENT,
+    MessageEvent,
+    FuncRule(lambda e: e.payload.get("cmd") == "del_link"))
 async def delete_link_handler(event: MessageEvent):
     link_id = event.payload.get("id")
     if await delete_video_link(link_id):

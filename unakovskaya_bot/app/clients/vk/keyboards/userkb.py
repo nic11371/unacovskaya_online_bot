@@ -71,7 +71,8 @@ def next_link_btn():
     """Кнопка Далее"""
     keyboard = Keyboard(inline=True)
     keyboard.add(
-        Callback(TEXTS.get('text_btn_next'), payload={"cmd": "skip_link_delay"}),
+        Callback(
+            TEXTS.get('text_btn_next'), payload={"cmd": "skip_link_delay"}),
         color=KeyboardButtonColor.POSITIVE
     )
     return keyboard.get_json()
