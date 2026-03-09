@@ -29,3 +29,5 @@ TG_BOT_PORT = int(os.getenv("TG_BOT_PORT") or 8080)
 TG_BOT_USER_ADMIN = int(os.getenv("TG_BOT_USER_ADMIN") or 0)
 
 DELAY_LINK = int(os.getenv('DELAY_LINK') or 5)
+DELAY_TG_MAIL = float(os.getenv('DELAY_TG_MAIL') or 0.2)
+DELAY_VK_MAIL = float(os.getenv('DELAY_VK_MAIL') or 0.2)

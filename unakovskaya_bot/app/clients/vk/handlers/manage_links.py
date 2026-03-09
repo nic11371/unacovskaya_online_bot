@@ -1,4 +1,5 @@
 import asyncio
+from typing import Dict
 from vkbottle.bot import Message, MessageEvent
 from vkbottle import GroupEventType
 from vkbottle.dispatch.rules.base import FuncRule, PayloadRule
@@ -13,7 +14,7 @@ from unakovskaya_bot.app.clients.vk.handlers.manage_admin import \
 from unakovskaya_bot.app.clients.vk.utils import answer_event
 
 
-user_events = {}
+user_events: Dict[int, asyncio.Event] = {}
 
 
 async def get_links(message: Message):
@@ -23,9 +24,13 @@ async def get_links(message: Message):
         return
 
     user_id = message.from_id
+
+    if user_id in user_events:
+        # Если просмотр уже идет, не запускаем второй поток
+        return
+
     # Создаем событие для управления ожиданием
-    if user_id not in user_events:
-        user_events[user_id] = asyncio.Event()
+    user_events[user_id] = asyncio.Event()
 
     previous_msg = None
 

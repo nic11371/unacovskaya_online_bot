@@ -1,4 +1,5 @@
 import asyncio
+from typing import Dict
 from aiogram.types import Message, CallbackQuery
 from aiogram import F
 from unakovskaya_bot.variables import DELAY_LINK
@@ -11,7 +12,8 @@ from unakovskaya_bot.app.clients.tg.handlers.manage_admin import \
     show_links_list
 
 
-user_events = {}
+# Словарь для хранения событий ожидания (asyncio.Event) для каждого пользователя Telegram.
+user_events: Dict[int, asyncio.Event] = {}
 
 
 async def get_links(message: Message):
@@ -21,9 +23,13 @@ async def get_links(message: Message):
         return
 
     user_id = message.from_user.id
+    
+    if user_id in user_events:
+        # Если просмотр уже идет, не запускаем второй поток
+        return
+
     # Создаем событие для управления ожиданием
-    if user_id not in user_events:
-        user_events[user_id] = asyncio.Event()
+    user_events[user_id] = asyncio.Event()
 
     previous_msg = None
 

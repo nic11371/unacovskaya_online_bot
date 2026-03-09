@@ -3,6 +3,7 @@ from vkbottle import GroupEventType
 from vkbottle.bot import Message, MessageEvent
 from vkbottle.dispatch.rules.base import PayloadRule
 from unakovskaya_bot.static.texts import TEXTS
+from unakovskaya_bot.variables import DELAY_VK_MAIL
 from unakovskaya_bot.app.clients.vk.labeler import chat_labeler
 from unakovskaya_bot.app.clients.vk.states.states import AddLinkState, \
     BroadcastState
@@ -75,13 +76,13 @@ async def process_broadcast(message: Message):
             continue
         try:
             await message.ctx_api.messages.send(
-                peer_id=user_id, 
-                message=message.text, 
+                peer_id=user_id,
+                message=message.text,
                 attachment=attachment_str,
                 random_id=0
             )
             count += 1
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(DELAY_VK_MAIL)
         except Exception:
             pass
 

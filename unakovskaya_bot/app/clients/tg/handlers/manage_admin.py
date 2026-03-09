@@ -3,6 +3,7 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup
 from aiogram import F
 from aiogram.fsm.context import FSMContext
 from unakovskaya_bot.static.texts import TEXTS
+from unakovskaya_bot.variables import DELAY_TG_MAIL
 from unakovskaya_bot.app.clients.tg.router import router
 from unakovskaya_bot.app.clients.tg.states.states import AddLinkState, \
     BroadcastState
@@ -38,7 +39,7 @@ async def process_broadcast(message: Message, state: FSMContext):
         try:
             await message.copy_to(chat_id=user_id)
             count += 1
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(DELAY_TG_MAIL)
         except Exception:
             pass
 
