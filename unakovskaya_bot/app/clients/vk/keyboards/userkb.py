@@ -33,6 +33,18 @@ def get_admin_keyboard():
         Callback(TEXTS.get('text_btn_rem'), payload={"cmd": "admin_list"}),
         color=KeyboardButtonColor.NEGATIVE
     )
+    keyboard.row()
+
+    keyboard.add(
+        Callback(TEXTS.get('text_btn_email_admin'),
+                 payload={"cmd": "admin_list_emails"})
+    )
+    keyboard.row()
+
+    keyboard.add(
+        Callback(TEXTS.get('text_btn_email_step'),
+                 payload={"cmd": "admin_email_step"})
+    )
 
     return keyboard.get_json()
 
@@ -46,21 +58,44 @@ def admin_back_btn():
     return keyboard.get_json()
 
 
-def get_delete_links_keyboard(links):
+PAGE_SIZE = 4
+
+
+def get_delete_links_keyboard(links, page=0):
     """
-    Генерирует клавиатуру со списком ссылок для удаления.
-    Заменяет функцию del_link из aiogram версии.
+    Генерирует клавиатуру со списком ссылок для удаления (с пагинацией).
+    VK ограничивает inline-клавиатуры до 6 строк.
+    Максимум строк: 4 ссылки + 1 навигация + 1 «Назад» = 6.
     """
     keyboard = Keyboard(inline=True)
 
-    for link in links:
+    start = page * PAGE_SIZE
+    page_links = links[start:start + PAGE_SIZE]
+
+    for i, link in enumerate(page_links):
         label = f"🗑 {link.order}. {link.title}"[:40]
         keyboard.add(
             Callback(label, payload={"cmd": "del_link", "id": link.id}),
             color=KeyboardButtonColor.NEGATIVE
         )
-        keyboard.row()
+        if i < len(page_links) - 1:
+            keyboard.row()
 
+    has_prev = page > 0
+    has_next = start + PAGE_SIZE < len(links)
+
+    if has_prev or has_next:
+        keyboard.row()
+        if has_prev:
+            keyboard.add(
+                Callback("◀", payload={"cmd": "admin_list_page", "page": page - 1})
+            )
+        if has_next:
+            keyboard.add(
+                Callback("▶", payload={"cmd": "admin_list_page", "page": page + 1})
+            )
+
+    keyboard.row()
     keyboard.add(
         Callback(TEXTS.get('text_btn_back'), payload={"cmd": "admin_back"})
     )

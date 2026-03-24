@@ -36,6 +36,18 @@ class VideoLink(models.Model):
         return f"{status} step {self.order}: {self.title}"
 
 
+class BotSetting(models.Model):
+    key = models.CharField(max_length=100, unique=True)
+    value = models.CharField(max_length=255)
+
+    class Meta:
+        verbose_name = "Bot Setting"
+        verbose_name_plural = "Bot Settings"
+
+    def __str__(self):
+        return f"{self.key} = {self.value}"
+
+
 class User(models.Model):
     first_name = models.CharField(max_length=100, blank=True)
     last_name = models.CharField(max_length=100, blank=True)

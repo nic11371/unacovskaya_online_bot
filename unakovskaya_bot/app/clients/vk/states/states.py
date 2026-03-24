@@ -9,3 +9,7 @@ class AddLinkState(BaseStateGroup):
 
 class BroadcastState(BaseStateGroup):
     WAITING_FOR_MESSAGE = "broadcast_message"
+
+
+class EmailStepState(BaseStateGroup):
+    WAITING_FOR_STEP = "email_step_value"

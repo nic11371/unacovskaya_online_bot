@@ -45,16 +45,12 @@ async def start_from_button(message: Message):
 
 @chat_labeler.message(text="/admin")
 async def admin_start(message: Message):
-    # Проверяем актуальность админа из ENV
     try:
         admin_id = int(VK_BOT_USER_ADMIN)
     except (ValueError, TypeError):
         admin_id = None
 
-    if admin_id != message.from_id:
-        await unset_user_admin(message.from_id, platform='vk')
-
-    if not await is_user_admin(message.from_id, platform='vk'):
+    if not admin_id or admin_id != message.from_id:
         await message.answer(TEXTS.get('text_restrict_admin'))
         return
 

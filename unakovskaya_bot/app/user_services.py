@@ -1,5 +1,6 @@
 from asgiref.sync import sync_to_async
-from unakovskaya_bot.app.models import User
+from unakovskaya_bot.app.models import User, BotSetting
+from unakovskaya_bot.variables import EMAIL_AFTER_STEP
 
 
 @sync_to_async
@@ -71,3 +72,34 @@ def get_all_tg_users():
 def get_all_vk_users():
     return list(User.objects.filter(
         vk_id__isnull=False).values_list('vk_id', flat=True))
+
+
+@sync_to_async
+def add_email(user_id, email, platform):
+    if platform == 'tg':
+        User.objects.filter(tg_id=user_id).update(email=email)
+    elif platform == 'vk':
+        User.objects.filter(vk_id=user_id).update(email=email)
+
+
+@sync_to_async
+def get_email_step():
+    obj = BotSetting.objects.filter(key='email_after_step').first()
+    return int(obj.value) if obj else EMAIL_AFTER_STEP
+
+
+@sync_to_async
+def set_email_step(step: int):
+    BotSetting.objects.update_or_create(
+        key='email_after_step',
+        defaults={'value': str(step)}
+    )
+
+
+@sync_to_async
+def get_user_emails():
+    return list(
+        User.objects.exclude(email='')
+        .values_list('email', flat=True)
+        .order_by('created_at')
+    )

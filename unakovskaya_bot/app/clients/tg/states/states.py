@@ -9,3 +9,7 @@ class AddLinkState(StatesGroup):
 
 class BroadcastState(StatesGroup):
     waiting_for_message = State()
+
+
+class EmailStepState(StatesGroup):
+    waiting_for_step = State()
