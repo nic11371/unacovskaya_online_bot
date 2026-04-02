@@ -1,16 +1,21 @@
-import asyncio
+import logging
 import aiohttp
 from vkbottle import GroupEventType
 from vkbottle.bot import Message, MessageEvent
+from unakovskaya_bot.tasks import broadcast_vk
+
+logger = logging.getLogger(__name__)
 from vkbottle.dispatch.rules.base import PayloadRule, FuncRule
 from unakovskaya_bot.static.texts import TEXTS
-from unakovskaya_bot.variables import DELAY_VK_MAIL
+from unakovskaya_bot.variables import DELAY_VK_MAIL  # noqa: F401
 from unakovskaya_bot.app.clients.vk.labeler import chat_labeler
 from unakovskaya_bot.app.clients.vk.states.states import AddLinkState, \
-    BroadcastState, EmailStepState
+    BroadcastState, EmailStepState, EmailTextState
 from unakovskaya_bot.app.videolinks_services import add_video_link, get_links
-from unakovskaya_bot.app.user_services import get_all_vk_users, set_user_admin, \
-    get_user_emails, get_email_step, set_email_step
+from unakovskaya_bot.app.user_services import (
+    get_all_vk_users, set_user_admin, get_user_emails,
+    get_email_step, set_email_step, get_email_text, set_email_text
+)
 from unakovskaya_bot.app.clients.vk.keyboards.userkb import \
     get_admin_keyboard, get_delete_links_keyboard
 from unakovskaya_bot.app.clients.vk.utils import answer_event
@@ -39,61 +44,40 @@ async def process_broadcast(message: Message):
         return
 
     users_ids = await get_all_vk_users()
-    count = 0
 
-    status_msg = await message.answer(
-        f"{TEXTS.get('text_start_mailing')} {len(users_ids)}")
-
-    # Собираем вложения (фото, видео, документы) в строку для отправки
     attachments = []
     if message.attachments:
         for attachment in message.attachments:
-            media = attachment.photo or \
-                attachment.video or \
-                attachment.doc or \
-                attachment.audio
+            media = (attachment.photo or attachment.video
+                     or attachment.doc or attachment.audio)
             if media:
-                # Определяем тип вложения
-                type_str = ""
                 if attachment.photo:
                     type_str = "photo"
                 elif attachment.video:
                     type_str = "video"
                 elif attachment.doc:
                     type_str = "doc"
-                elif attachment.audio:
+                else:
                     type_str = "audio"
 
-                if type_str:
-                    # Формат: type{owner_id}_{id}_{access_key}
-                    att_str = f"{type_str}{media.owner_id}_{media.id}"
-                    if getattr(media, "access_key", None):
-                        att_str += f"_{media.access_key}"
-                    attachments.append(att_str)
+                att_str = f"{type_str}{media.owner_id}_{media.id}"
+                if getattr(media, "access_key", None):
+                    att_str += f"_{media.access_key}"
+                attachments.append(att_str)
 
     attachment_str = ",".join(attachments) if attachments else None
 
-    for user_id in users_ids:
-        if user_id == message.from_id:
-            continue
-        try:
-            await message.ctx_api.messages.send(
-                peer_id=user_id,
-                message=message.text,
-                attachment=attachment_str,
-                random_id=0
-            )
-            count += 1
-            await asyncio.sleep(DELAY_VK_MAIL)
-        except Exception:
-            pass
-
-    await message.ctx_api.messages.edit(
-        peer_id=status_msg.peer_id,
-        message_id=status_msg.message_id,
-        message=f"{TEXTS.get(
-            'text_finish_mailing')} {count} из {len(users_ids)}"
+    broadcast_vk.delay(
+        user_ids=users_ids,
+        text=message.text,
+        attachment_str=attachment_str,
+        from_user_id=message.from_id,
+        admin_peer_id=message.peer_id
     )
+
+    logger.info("VK broadcast запущен: %d пользователей", len(users_ids))
+    await message.answer(
+        f"{TEXTS.get('text_start_mailing')} {len(users_ids)}")
     await message.ctx_api.state_dispenser.delete(message.peer_id)
 
 
@@ -293,5 +277,33 @@ async def process_email_step(message: Message):
     await set_email_step(step)
     await message.answer(
         TEXTS.get('text_email_step_saved').format(step),
+        keyboard=get_admin_keyboard())
+    await message.ctx_api.state_dispenser.delete(message.peer_id)
+
+
+@chat_labeler.raw_event(
+    GroupEventType.MESSAGE_EVENT,
+    MessageEvent,
+    PayloadRule({"cmd": "admin_email_text"}))
+async def ask_email_text(event: MessageEvent):
+    current = await get_email_text()
+    await event.ctx_api.messages.send(
+        peer_id=event.peer_id,
+        message=TEXTS.get('text_ask_email_text').format(current),
+        random_id=0
+    )
+    await event.ctx_api.state_dispenser.set(
+        event.peer_id, EmailTextState.WAITING_FOR_TEXT)
+    await answer_event(event)
+
+
+@chat_labeler.message(state=EmailTextState.WAITING_FOR_TEXT)
+async def process_email_text(message: Message):
+    if message.text.startswith('/'):
+        return
+
+    await set_email_text(message.text.strip())
+    await message.answer(
+        TEXTS.get('text_email_text_saved'),
         keyboard=get_admin_keyboard())
     await message.ctx_api.state_dispenser.delete(message.peer_id)

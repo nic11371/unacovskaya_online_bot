@@ -29,7 +29,10 @@ def get_admin_keyboard():
             callback_data="admin_list_emails")],
         [InlineKeyboardButton(
             text=TEXTS.get('text_btn_email_step'),
-            callback_data="admin_email_step")]
+            callback_data="admin_email_step")],
+        [InlineKeyboardButton(
+            text=TEXTS.get('text_btn_email_text'),
+            callback_data="admin_email_text")]
     ])
 
 

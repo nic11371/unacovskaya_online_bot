@@ -1,16 +1,18 @@
-import asyncio
+import logging
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, \
     BufferedInputFile
 from aiogram import F
 from aiogram.fsm.context import FSMContext
 from unakovskaya_bot.static.texts import TEXTS
-from unakovskaya_bot.variables import DELAY_TG_MAIL
 from unakovskaya_bot.app.clients.tg.router import router
+from unakovskaya_bot.tasks import broadcast_tg
+
+logger = logging.getLogger(__name__)
 from unakovskaya_bot.app.clients.tg.states.states import AddLinkState, \
-    BroadcastState, EmailStepState
+    BroadcastState, EmailStepState, EmailTextState
 from unakovskaya_bot.app.videolinks_services import add_video_link, get_links
 from unakovskaya_bot.app.user_services import get_all_tg_users, set_user_admin, \
-    get_user_emails, get_email_step, set_email_step
+    get_user_emails, get_email_step, set_email_step, get_email_text, set_email_text
 from unakovskaya_bot.app.clients.tg.keyboards.userkb import \
     get_admin_keyboard, admin_back_btn, del_link
 
@@ -30,23 +32,18 @@ async def start_article(callback: CallbackQuery, state: FSMContext):
 @router.message(BroadcastState.waiting_for_message, ~F.text.startswith('/'))
 async def process_broadcast(message: Message, state: FSMContext):
     users_ids = await get_all_tg_users()
-    count = 0
 
-    status_msg = await message.answer(
+    broadcast_tg.delay(
+        user_ids=users_ids,
+        from_chat_id=message.chat.id,
+        message_id=message.message_id,
+        admin_chat_id=message.from_user.id
+    )
+
+    logger.info(
+        "TG broadcast запущен: %d пользователей", len(users_ids))
+    await message.answer(
         f"{TEXTS.get('text_start_mailing')} {len(users_ids)}")
-
-    for user_id in users_ids:
-        if user_id == message.from_user.id:
-            continue
-        try:
-            await message.copy_to(chat_id=user_id)
-            count += 1
-            await asyncio.sleep(DELAY_TG_MAIL)
-        except Exception:
-            pass
-
-    await status_msg.edit_text(
-        f"{TEXTS.get('text_finish_mailing')} {count} из {len(users_ids)}")
     await state.clear()
 
 
@@ -155,5 +152,23 @@ async def process_email_step(message: Message, state: FSMContext):
     await set_email_step(step)
     await message.answer(
         TEXTS.get('text_email_step_saved').format(step),
+        reply_markup=get_admin_keyboard())
+    await state.clear()
+
+
+@router.callback_query(F.data == "admin_email_text")
+async def ask_email_text(callback: CallbackQuery, state: FSMContext):
+    current = await get_email_text()
+    await callback.message.answer(
+        TEXTS.get('text_ask_email_text').format(current))
+    await state.set_state(EmailTextState.waiting_for_text)
+    await callback.answer()
+
+
+@router.message(EmailTextState.waiting_for_text, ~F.text.startswith('/'))
+async def process_email_text(message: Message, state: FSMContext):
+    await set_email_text(message.text.strip())
+    await message.answer(
+        TEXTS.get('text_email_text_saved'),
         reply_markup=get_admin_keyboard())
     await state.clear()

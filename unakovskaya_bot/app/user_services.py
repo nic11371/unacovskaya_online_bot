@@ -97,6 +97,21 @@ def set_email_step(step: int):
 
 
 @sync_to_async
+def get_email_text():
+    from unakovskaya_bot.static.texts import TEXTS
+    obj = BotSetting.objects.filter(key='email_ask_text').first()
+    return obj.value if obj else TEXTS.get('text_ask_email')
+
+
+@sync_to_async
+def set_email_text(text: str):
+    BotSetting.objects.update_or_create(
+        key='email_ask_text',
+        defaults={'value': text}
+    )
+
+
+@sync_to_async
 def get_user_emails():
     return list(
         User.objects.exclude(email='')

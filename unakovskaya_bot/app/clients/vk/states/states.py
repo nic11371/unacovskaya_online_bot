@@ -13,3 +13,7 @@ class BroadcastState(BaseStateGroup):
 
 class EmailStepState(BaseStateGroup):
     WAITING_FOR_STEP = "email_step_value"
+
+
+class EmailTextState(BaseStateGroup):
+    WAITING_FOR_TEXT = "email_text_value"

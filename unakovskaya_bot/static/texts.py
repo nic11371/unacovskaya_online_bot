@@ -6,8 +6,13 @@ TEXTS = {
     "text_error_removed": "❌ Ошибка удаления",
     "text_restrict_admin": "⛔️ У вас нет прав администратора.",
     "text_admin_panel": "🔧 Панель администратора:",
-    "text_welcome_admin": "👨‍💻 Вы опознаны как администратор.\nВведите /admin для входа в панель управления.",
-    "text_admin_article": "Отправьте сообщение (текст, фото, видео, голосовое) для всех.\n\n",
+    "text_welcome_admin": (
+        "👨‍💻 Вы опознаны как администратор.\n"
+        "Введите /admin для входа в панель управления."
+    ),
+    "text_admin_article": (
+        "Отправьте сообщение (текст, фото, видео, голосовое) для всех.\n\n"
+    ),
     "text_start_mailing": "Начинаю рассылку ...",
     "text_finish_mailing": "Рассылка завершена. Успешно отправлено:",
     "text_title_step": "Введите название шага (Title):",
@@ -17,12 +22,18 @@ TEXTS = {
     "text_link_added": "✅ Ссылка добавлена! Номер шага:",
     "text_empty_list": "Список пуст",
     "text_get_email": "Получить emails",
-    "text_ask_email": "Почти готово 😊Сначала пришлите, пожалуйста, ваш email и я сразу отправлю следующую запись.»",
+    "text_ask_email": (
+        "Почти готово 😊 Сначала пришлите, пожалуйста, ваш email "
+        "и я сразу отправлю следующую запись."
+    ),
     "text_email_saved": "✅ Email получен, Спасибо...",
     "text_email_invalid": "❌ Некорректный email. Попробуйте ещё раз:",
     "text_email_timeout": "⏱ Время ввода email истекло. Продолжаем...",
     "text_btn_email_admin": "Получить емайлы",
     "text_btn_email_step": "⚙️ Шаг запроса email",
+    "text_btn_email_text": "✏️ Текст запроса email",
+    "text_ask_email_text": "Текущий текст:\n\n{}\n\nВведите новый текст:",
+    "text_email_text_saved": "✅ Текст запроса email обновлён.",
     "text_ask_email_step": "Текущий шаг: {}. Введите новый номер шага:",
     "text_email_step_saved": "✅ Шаг запроса email изменён на: {}",
     "text_email_step_invalid": "❌ Введите целое положительное число.",

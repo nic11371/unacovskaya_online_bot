@@ -1,13 +1,17 @@
 import re
 import asyncio
+import logging
 from typing import Dict
+
+logger = logging.getLogger(__name__)
 from aiogram.types import Message, CallbackQuery
 from aiogram import F
 from unakovskaya_bot.variables import DELAY_LINK, EMAIL_TIMEOUT
 from unakovskaya_bot.static.texts import TEXTS
 from unakovskaya_bot.app.videolinks_services import get_active_links, \
     delete_video_link
-from unakovskaya_bot.app.user_services import add_email, get_email_step
+from unakovskaya_bot.app.user_services import add_email, get_email_step, \
+    get_email_text
 from unakovskaya_bot.app.clients.tg.router import router
 from unakovskaya_bot.app.clients.tg.keyboards.userkb import next_link_btn
 from unakovskaya_bot.app.clients.tg.handlers.manage_admin import \
@@ -33,6 +37,7 @@ async def get_links(message: Message):
     user_events[user_id] = asyncio.Event()
     previous_msg = None
     email_step = await get_email_step()
+    email_text = await get_email_text()
 
     try:
         for i, link in enumerate(links):
@@ -50,8 +55,8 @@ async def get_links(message: Message):
             if previous_msg:
                 try:
                     await previous_msg.edit_reply_markup(reply_markup=None)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Не удалось убрать кнопку: %s", e)
 
             keyboard = None
             if i < len(links) - 1:
@@ -66,9 +71,10 @@ async def get_links(message: Message):
                 if previous_msg:
                     try:
                         await previous_msg.edit_reply_markup(reply_markup=None)
-                    except Exception:
-                        pass
-                await message.answer(TEXTS.get('text_ask_email'))
+                    except Exception as e:
+                        logger.debug("edit_reply_markup error: %s", e)
+                logger.info("TG email request for user %s", user_id)
+                await message.answer(email_text)
                 loop = asyncio.get_running_loop()
                 future = loop.create_future()
                 user_email_futures[user_id] = future
@@ -76,8 +82,11 @@ async def get_links(message: Message):
                     email = await asyncio.wait_for(
                         asyncio.shield(future), timeout=EMAIL_TIMEOUT)
                     await add_email(user_id, email, 'tg')
+                    logger.info(
+                        "TG email saved for user %s: %s", user_id, email)
                     await message.answer(TEXTS.get('text_email_saved'))
                 except asyncio.TimeoutError:
+                    logger.info("TG email timeout for user %s", user_id)
                     await message.answer(TEXTS.get('text_email_timeout'))
                 finally:
                     user_email_futures.pop(user_id, None)

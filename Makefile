@@ -19,6 +19,9 @@ start-tg:
 start-vk:
 	uv run python manage.py run_vk_bot
 
+start-celery:
+	uv run celery -A unakovskaya_bot worker --loglevel=info
+
 lint:
 	uv run ruff check .
 

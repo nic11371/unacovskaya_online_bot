@@ -1,9 +1,10 @@
 import logging
+import sentry_sdk
+from sentry_sdk.integrations.logging import LoggingIntegration
 from django.core.management.base import BaseCommand
 from vkbottle.bot import Bot
-from unakovskaya_bot.variables import VK_BOT_TOKEN
+from unakovskaya_bot.variables import VK_BOT_TOKEN, SENTRY_DSN
 from unakovskaya_bot.app.clients.vk.labeler import chat_labeler
-# Импортируем модуль с хендлерами, чтобы декораторы в нем выполнились
 from unakovskaya_bot.app.clients.vk.handlers import commands
 
 
@@ -13,19 +14,25 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         logging.basicConfig(
             level=logging.INFO,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         )
         logger = logging.getLogger(__name__)
 
-        # Инициализация бота
+        if SENTRY_DSN:
+            sentry_sdk.init(
+                dsn=SENTRY_DSN,
+                integrations=[
+                    LoggingIntegration(
+                        level=logging.INFO,
+                        event_level=logging.ERROR
+                    )
+                ],
+                traces_sample_rate=0.2,
+            )
+            logger.info("Sentry инициализирован")
+
         bot = Bot(token=VK_BOT_TOKEN)
-
-        # Прокидываем state_dispenser в объект api,
-        # чтобы он был доступен в хендлерах через ctx_api
         bot.api.state_dispenser = bot.state_dispenser
-
-        # Загружаем хендлеры из внешних файлов (через labeler)
-        # Теперь chat_labeler не пустой, т.к. модуль commands был импортирован
         bot.labeler.load(chat_labeler)
 
         logger.info("Запуск VK бота...")

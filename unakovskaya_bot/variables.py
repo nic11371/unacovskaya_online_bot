@@ -34,3 +34,6 @@ DELAY_VK_MAIL = float(os.getenv('DELAY_VK_MAIL') or 0.2)
 
 EMAIL_AFTER_STEP = int(os.getenv('EMAIL_AFTER_STEP') or 3)
 EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT') or 600)
+
+REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+SENTRY_DSN = os.getenv('SENTRY_DSN', '')

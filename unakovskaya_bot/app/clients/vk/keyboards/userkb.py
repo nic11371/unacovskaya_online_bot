@@ -45,6 +45,12 @@ def get_admin_keyboard():
         Callback(TEXTS.get('text_btn_email_step'),
                  payload={"cmd": "admin_email_step"})
     )
+    keyboard.row()
+
+    keyboard.add(
+        Callback(TEXTS.get('text_btn_email_text'),
+                 payload={"cmd": "admin_email_text"})
+    )
 
     return keyboard.get_json()
 
@@ -87,13 +93,13 @@ def get_delete_links_keyboard(links, page=0):
     if has_prev or has_next:
         keyboard.row()
         if has_prev:
-            keyboard.add(
-                Callback("◀", payload={"cmd": "admin_list_page", "page": page - 1})
-            )
+            keyboard.add(Callback(
+                "◀", payload={"cmd": "admin_list_page", "page": page - 1}
+            ))
         if has_next:
-            keyboard.add(
-                Callback("▶", payload={"cmd": "admin_list_page", "page": page + 1})
-            )
+            keyboard.add(Callback(
+                "▶", payload={"cmd": "admin_list_page", "page": page + 1}
+            ))
 
     keyboard.row()
     keyboard.add(
