@@ -1,0 +1,91 @@
+services:
+
+  # ── База данных ─────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME} -d ${DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Миграции (запускается один раз при старте) ───────────────────────────────
+  migrate:
+    build: .
+    command: uv run python manage.py migrate --noinput
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ── Django admin панель ──────────────────────────────────────────────────────
+  web:
+    build: .
+    command: uv run python manage.py runserver 0.0.0.0:8000
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  # ── Telegram бот ─────────────────────────────────────────────────────────────
+  tg-bot:
+    build: .
+    command: uv run python manage.py run_tg_bot
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${TG_BOT_PORT:-8080}:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  # ── VK бот ───────────────────────────────────────────────────────────────────
+  vk-bot:
+    build: .
+    command: uv run python manage.py run_vk_bot
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  # ── Celery воркер (рассылки) ─────────────────────────────────────────────────
+  celery:
+    build: .
+    command: uv run celery -A unakovskaya_bot worker --loglevel=info
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
