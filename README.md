@@ -34,12 +34,73 @@
 - **aiogram 3** — Telegram бот
 - **vkbottle** — ВКонтакте бот
 - **aiohttp** — загрузка файлов в VK
+- **Celery** — фоновые задачи (рассылка)
+- **Redis** — брокер задач для Celery
 - **PostgreSQL** (или SQLite для разработки)
 - **uv** — менеджер зависимостей
 
 ---
 
-## Установка и запуск
+## Запуск через Docker (рекомендуется)
+
+Самый простой способ — запустить всё сразу через Docker Compose. Он поднимает PostgreSQL, Redis, миграции, оба бота и Celery-воркер автоматически.
+
+### 1. Клонировать репозиторий
+
+```bash
+git clone <repo_url>
+cd unacovskaya_online_bot
+```
+
+### 2. Создать файл `.env`
+
+```bash
+cp .env_example .env
+```
+
+Заполнить обязательные переменные (токены ботов, ID администраторов, параметры БД).
+
+### 3. Собрать и запустить
+
+```bash
+make docker-build
+make docker-up
+```
+
+Или одной командой:
+
+```bash
+docker compose up -d --build
+```
+
+Миграции применяются автоматически при старте.
+
+### Полезные команды
+
+| Команда | Описание |
+|---|---|
+| `make docker-up` | Запустить все сервисы в фоне |
+| `make docker-down` | Остановить все сервисы |
+| `make docker-restart` | Перезапустить все сервисы |
+| `make docker-logs` | Смотреть логи всех сервисов |
+| `docker compose logs -f vk-bot` | Логи только VK бота |
+| `docker compose logs -f tg-bot` | Логи только TG бота |
+| `docker compose logs -f celery` | Логи Celery-воркера |
+
+### Сервисы
+
+| Сервис | Описание |
+|---|---|
+| `db` | PostgreSQL |
+| `redis` | Redis (брокер Celery) |
+| `migrate` | Применение миграций (запускается один раз) |
+| `tg-bot` | Telegram бот |
+| `vk-bot` | ВКонтакте бот |
+| `celery` | Воркер для рассылок |
+
+---
+
+## Локальный запуск (для разработки)
 
 ### 1. Клонировать репозиторий
 
@@ -56,30 +117,52 @@ make sync
 
 ### 3. Создать файл `.env`
 
-Пример переменных в .env_example
+Пример переменных в `.env_example`. Для разработки можно использовать SQLite:
 
-### 4. Применить миграции
+```env
+DATABASE_ENGINE=sqlite
+DATABASE_NAME=db.sqlite3
+REDIS_URL=redis://localhost:6379/0
+```
+
+### 4. Запустить Redis локально
 
 ```bash
-make migrations
+redis-server
+```
+
+Или через Docker (только Redis):
+
+```bash
+docker run -d -p 6379:6379 redis:7-alpine
+```
+
+### 5. Применить миграции
+
+```bash
 make migrate
 ```
 
-### 5. Запустить django и ботов
+### 6. Запустить компоненты (каждый в отдельном терминале)
 
-Django:
+Django (опционально, для веб-админки):
 ```bash
 make start
 ```
 
-Telegram:
+Telegram бот:
 ```bash
 make start-tg
 ```
 
-ВКонтакте:
+ВКонтакте бот:
 ```bash
 make start-vk
+```
+
+Celery-воркер (обязателен для рассылок):
+```bash
+make start-celery
 ```
 
 ---
@@ -110,4 +193,4 @@ make start-vk
 - **Ссылка**
 - **Описание**
 
-Материалы добавляются через админ-панель бота или через Django Admin (`/admin` веб-интерфейс).
+Материалы добавляются через админ-панель бота (`/admin` веб-интерфейс).

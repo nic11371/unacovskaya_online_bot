@@ -1,16 +1,20 @@
 import logging
 import sentry_sdk
+from aiohttp import ClientTimeout
 from sentry_sdk.integrations.logging import LoggingIntegration
 from django.core.management.base import BaseCommand
 from vkbottle.bot import Bot
+from vkbottle.api import API
+from vkbottle.http import AiohttpClient
+from unakovskaya_bot.static.texts import TEXTS
 from unakovskaya_bot.variables import VK_BOT_TOKEN, SENTRY_DSN
 from unakovskaya_bot.app.clients.vk.labeler import chat_labeler
-from unakovskaya_bot.app.clients.vk.handlers import commands
+from unakovskaya_bot.app.clients.vk.handlers import (  # noqa: F401
+    commands, manage_links, manage_admin, manage_broadcast, manage_settings
+)
 
 
 class Command(BaseCommand):
-    help = "Запуск VK бота"
-
     def handle(self, *args, **options):
         logging.basicConfig(
             level=logging.INFO,
@@ -29,11 +33,16 @@ class Command(BaseCommand):
                 ],
                 traces_sample_rate=0.2,
             )
-            logger.info("Sentry инициализирован")
+            logger.info(TEXTS.get("text_log_sentry"))
 
-        bot = Bot(token=VK_BOT_TOKEN)
-        bot.api.state_dispenser = bot.state_dispenser
+        # sock_read=35 чуть больше VK Long Poll wait=25,
+        # чтобы не было TimeoutError
+        http_client = AiohttpClient(
+            timeout=ClientTimeout(total=None, connect=30, sock_read=35)
+        )
+        api = API(token=VK_BOT_TOKEN, http_client=http_client)
+        bot = Bot(api=api)
         bot.labeler.load(chat_labeler)
 
-        logger.info("Запуск VK бота...")
+        logger.info(TEXTS.get("text_start_vk_bot"))
         bot.run_forever()

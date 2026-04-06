@@ -16,13 +16,13 @@ def sync_user(
     }
 
     if platform == 'tg':
-        defaults['username'] = username if username else str(user_id)
+        defaults['username'] = username or ""
         user, _ = User.objects.update_or_create(
             tg_id=user_id,
             defaults=defaults
         )
     elif platform == 'vk':
-        defaults['username'] = username if username else f"vk_{user_id}"
+        defaults['username'] = username or ""
         user, _ = User.objects.update_or_create(
             vk_id=user_id,
             defaults=defaults

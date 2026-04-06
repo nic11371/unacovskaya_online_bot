@@ -2,20 +2,23 @@ import re
 import asyncio
 import logging
 from typing import Dict
-
-logger = logging.getLogger(__name__)
 from aiogram.types import Message, CallbackQuery
 from aiogram import F
 from unakovskaya_bot.variables import DELAY_LINK, EMAIL_TIMEOUT
 from unakovskaya_bot.static.texts import TEXTS
-from unakovskaya_bot.app.videolinks_services import get_active_links, \
-    delete_video_link
-from unakovskaya_bot.app.user_services import add_email, get_email_step, \
-    get_email_text
+from unakovskaya_bot.app.videolinks_services import (
+    get_active_links,
+    delete_video_link)
+from unakovskaya_bot.app.user_services import (
+    add_email,
+    get_email_step,
+    get_email_text)
 from unakovskaya_bot.app.clients.tg.router import router
 from unakovskaya_bot.app.clients.tg.keyboards.userkb import next_link_btn
 from unakovskaya_bot.app.clients.tg.handlers.manage_admin import \
     show_links_list
+
+logger = logging.getLogger(__name__)
 
 
 user_events: Dict[int, asyncio.Event] = {}
@@ -56,13 +59,14 @@ async def get_links(message: Message):
                 try:
                     await previous_msg.edit_reply_markup(reply_markup=None)
                 except Exception as e:
-                    logger.debug("Не удалось убрать кнопку: %s", e)
+                    logger.debug(TEXTS.get('log_tg_remove_button_fail'), e)
 
             keyboard = None
             if i < len(links) - 1:
                 keyboard = next_link_btn()
 
-            text_part = f"{link.title}\n\n{link.url}\n\n{link.message_text}"
+            text_part = TEXTS.get('text_link_format').format(
+                title=link.title, url=link.url, message_text=link.message_text)
             previous_msg = await message.answer(
                 text_part, reply_markup=keyboard)
 
@@ -72,8 +76,9 @@ async def get_links(message: Message):
                     try:
                         await previous_msg.edit_reply_markup(reply_markup=None)
                     except Exception as e:
-                        logger.debug("edit_reply_markup error: %s", e)
-                logger.info("TG email request for user %s", user_id)
+                        logger.debug(
+                            TEXTS.get('log_tg_edit_reply_markup_error'), e)
+                logger.info(TEXTS.get('log_tg_email_request'), user_id)
                 await message.answer(email_text)
                 loop = asyncio.get_running_loop()
                 future = loop.create_future()
@@ -83,10 +88,10 @@ async def get_links(message: Message):
                         asyncio.shield(future), timeout=EMAIL_TIMEOUT)
                     await add_email(user_id, email, 'tg')
                     logger.info(
-                        "TG email saved for user %s: %s", user_id, email)
+                        TEXTS.get('log_tg_email_saved'), user_id, email)
                     await message.answer(TEXTS.get('text_email_saved'))
                 except asyncio.TimeoutError:
-                    logger.info("TG email timeout for user %s", user_id)
+                    logger.info(TEXTS.get('log_tg_email_timeout'), user_id)
                     await message.answer(TEXTS.get('text_email_timeout'))
                 finally:
                     user_email_futures.pop(user_id, None)

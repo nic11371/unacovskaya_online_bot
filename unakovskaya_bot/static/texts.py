@@ -52,4 +52,45 @@ TEXTS = {
     "text_log_stop_bot": "Остановка бота...",
     "text_log_webhook_rem": "Вебхук удален.",
     "text_log_http": "Запуск на http://",
+    "text_log_sentry": "Sentry инициализирован",
+    "text_start_vk_bot": "Запуск vk bot",
+    "text_log_tg_broadcast":
+        "TG broadcast: не удалось поставить задачу в очередь:",
+    "text_broadcast_done": (
+        "✅ Рассылка завершена.\n"
+        "Отправлено: {count}\n"
+        "Всего в базе: {total}"
+    ),
+    "text_broadcast_error": "❌ Ошибка запуска рассылки: {error}",
+    "text_emails_caption": "📧 Emails: {count}",
+    "text_emails_send_error": "❌ Ошибка при отправке файла: {error}",
+    "text_link_format": "{title}\n\n{url}\n\n{message_text}",
+    "text_btn_del_link": "🗑 {order}. {title}",
+    # log messages
+    "log_tg_broadcast_fail_user":
+        "TG broadcast: не удалось отправить пользователю %s: %s",
+    "log_tg_broadcast_done": "TG broadcast завершён: %d/%d отправлено",
+    "log_tg_broadcast_started": "TG broadcast запущен: %d пользователей",
+    "log_tg_broadcast_fail_queue":
+        "TG broadcast: не удалось поставить задачу в очередь: %s",
+    "log_tg_email_request": "TG email request for user %s",
+    "log_tg_email_saved": "TG email saved for user %s: %s",
+    "log_tg_email_timeout": "TG email timeout for user %s",
+    "log_tg_remove_button_fail": "Не удалось убрать кнопку: %s",
+    "log_tg_edit_reply_markup_error": "edit_reply_markup error: %s",
+    "log_vk_broadcast_fail_user":
+        "VK broadcast: не удалось отправить пользователю %s: %s",
+    "log_vk_broadcast_done": "VK broadcast завершён: %d/%d отправлено",
+    "log_vk_broadcast_started": "VK broadcast запущен: %d пользователей",
+    "log_vk_broadcast_fail_queue":
+        "VK broadcast: не удалось поставить задачу в очередь: %s",
+    "log_vk_broadcast_fail_admin":
+        "VK broadcast: не удалось уведомить админа: %s",
+    "log_vk_email_request": "VK email request for user %s",
+    "log_vk_email_saved": "VK email saved for user %s: %s",
+    "log_vk_email_timeout": "VK email timeout for user %s",
+    "log_vk_edit_keyboard_error": "VK edit keyboard error: %s",
+    "log_vk_start_fail_user_info":
+        "VK /start: failed to get user info for %s: %s",
+    "log_vk_start_fail_sync": "VK /start: failed to sync user %s: %s",
 }

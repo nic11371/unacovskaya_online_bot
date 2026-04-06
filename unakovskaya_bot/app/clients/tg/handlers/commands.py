@@ -21,9 +21,6 @@ async def start(message: Message, state: FSMContext):
         first_name=message.from_user.first_name,
         last_name=message.from_user.last_name,
     )
-    print(message.model_dump_json(indent=4))
-    await message.answer(TEXTS.get('text_welcome'))
-
     try:
         admin_id = int(TG_BOT_USER_ADMIN)
     except (ValueError, TypeError):

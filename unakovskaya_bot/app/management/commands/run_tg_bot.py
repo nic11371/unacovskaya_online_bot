@@ -14,8 +14,9 @@ from unakovskaya_bot.variables import (
     REDIS_URL, SENTRY_DSN
 )
 from unakovskaya_bot.app.clients.tg.router import router
-from unakovskaya_bot.app.clients.tg.handlers import \
-    commands, manage_links, manage_admin
+from unakovskaya_bot.app.clients.tg.handlers import (  # noqa: F401
+    commands, manage_links, manage_admin, manage_broadcast, manage_settings
+)
 
 
 class Command(BaseCommand):
@@ -39,7 +40,7 @@ class Command(BaseCommand):
                 ],
                 traces_sample_rate=0.2,
             )
-            logger.info("Sentry инициализирован")
+            logger.info(TEXTS.get("text_log_sentry"))
 
         logger.info(TEXTS.get('text_log_start'))
 

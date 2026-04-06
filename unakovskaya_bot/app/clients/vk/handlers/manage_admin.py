@@ -1,24 +1,18 @@
 import logging
-import aiohttp
 from vkbottle import GroupEventType
 from vkbottle.bot import Message, MessageEvent
-from unakovskaya_bot.tasks import broadcast_vk
-
-logger = logging.getLogger(__name__)
 from vkbottle.dispatch.rules.base import PayloadRule, FuncRule
 from unakovskaya_bot.static.texts import TEXTS
-from unakovskaya_bot.variables import DELAY_VK_MAIL  # noqa: F401
 from unakovskaya_bot.app.clients.vk.labeler import chat_labeler
-from unakovskaya_bot.app.clients.vk.states.states import AddLinkState, \
-    BroadcastState, EmailStepState, EmailTextState
+from unakovskaya_bot.app.clients.vk.states.states import AddLinkState
 from unakovskaya_bot.app.videolinks_services import add_video_link, get_links
-from unakovskaya_bot.app.user_services import (
-    get_all_vk_users, set_user_admin, get_user_emails,
-    get_email_step, set_email_step, get_email_text, set_email_text
-)
-from unakovskaya_bot.app.clients.vk.keyboards.userkb import \
+from unakovskaya_bot.app.user_services import set_user_admin
+from unakovskaya_bot.app.clients.vk.keyboards.userkb import (
     get_admin_keyboard, get_delete_links_keyboard
+)
 from unakovskaya_bot.app.clients.vk.utils import answer_event
+
+logger = logging.getLogger(__name__)
 
 
 async def set_admin(message: Message):
@@ -29,67 +23,11 @@ async def set_admin(message: Message):
 @chat_labeler.raw_event(
     GroupEventType.MESSAGE_EVENT,
     MessageEvent,
-    PayloadRule({"cmd": "admin_article"}))
-async def start_article(event: MessageEvent):
-    await event.edit_message(TEXTS.get('text_admin_article'))
-    await event.ctx_api.state_dispenser.set(
-        event.peer_id, BroadcastState.WAITING_FOR_MESSAGE)
-
-    await answer_event(event)
-
-
-@chat_labeler.message(state=BroadcastState.WAITING_FOR_MESSAGE)
-async def process_broadcast(message: Message):
-    if message.text.startswith('/'):
-        return
-
-    users_ids = await get_all_vk_users()
-
-    attachments = []
-    if message.attachments:
-        for attachment in message.attachments:
-            media = (attachment.photo or attachment.video
-                     or attachment.doc or attachment.audio)
-            if media:
-                if attachment.photo:
-                    type_str = "photo"
-                elif attachment.video:
-                    type_str = "video"
-                elif attachment.doc:
-                    type_str = "doc"
-                else:
-                    type_str = "audio"
-
-                att_str = f"{type_str}{media.owner_id}_{media.id}"
-                if getattr(media, "access_key", None):
-                    att_str += f"_{media.access_key}"
-                attachments.append(att_str)
-
-    attachment_str = ",".join(attachments) if attachments else None
-
-    broadcast_vk.delay(
-        user_ids=users_ids,
-        text=message.text,
-        attachment_str=attachment_str,
-        from_user_id=message.from_id,
-        admin_peer_id=message.peer_id
-    )
-
-    logger.info("VK broadcast запущен: %d пользователей", len(users_ids))
-    await message.answer(
-        f"{TEXTS.get('text_start_mailing')} {len(users_ids)}")
-    await message.ctx_api.state_dispenser.delete(message.peer_id)
-
-
-@chat_labeler.raw_event(
-    GroupEventType.MESSAGE_EVENT,
-    MessageEvent,
     PayloadRule({"cmd": "admin_add"}))
 async def start_add_link(event: MessageEvent):
     await event.edit_message(TEXTS.get('text_title_step'))
     await event.ctx_api.state_dispenser.set(
         event.peer_id, AddLinkState.WAITING_FOR_TITLE)
-
     await answer_event(event)
 
 
@@ -160,9 +98,7 @@ async def show_links_list(event: MessageEvent):
     keyboard_json = get_delete_links_keyboard(links)
     await event.edit_message(
         TEXTS.get('text_btn_remove'),
-        keyboard=keyboard_json
-    )
-
+        keyboard=keyboard_json)
     await answer_event(event)
 
 
@@ -181,9 +117,7 @@ async def show_links_list_page(event: MessageEvent):
     keyboard_json = get_delete_links_keyboard(links, page=page)
     await event.edit_message(
         TEXTS.get('text_btn_remove'),
-        keyboard=keyboard_json
-    )
-
+        keyboard=keyboard_json)
     await answer_event(event)
 
 
@@ -194,116 +128,4 @@ async def show_links_list_page(event: MessageEvent):
 async def admin_back(event: MessageEvent):
     await event.edit_message(
         TEXTS.get('text_admin_panel'), keyboard=get_admin_keyboard())
-
     await answer_event(event)
-
-
-@chat_labeler.raw_event(
-    GroupEventType.MESSAGE_EVENT,
-    MessageEvent,
-    PayloadRule({"cmd": "admin_list_emails"}))
-async def send_emails_file(event: MessageEvent):
-    emails = await get_user_emails()
-
-    if not emails:
-        await event.show_snackbar(TEXTS.get('text_empty_list_emails'))
-        return
-
-    content = "\n".join(emails).encode('utf-8')
-    peer_id = event.peer_id
-
-    try:
-        upload_server = await event.ctx_api.docs.get_messages_upload_server(
-            peer_id=peer_id, type="doc")
-        async with aiohttp.ClientSession() as session:
-            form = aiohttp.FormData()
-            form.add_field('file', content,
-                           filename='emails.txt',
-                           content_type='text/plain')
-            async with session.post(
-                    upload_server.upload_url, data=form) as resp:
-                result = await resp.json()
-
-        saved = await event.ctx_api.docs.save(
-            file=result['file'], title='emails.txt')
-        doc = saved.doc
-        attachment = f"doc{doc.owner_id}_{doc.id}"
-
-        await event.ctx_api.messages.send(
-            peer_id=peer_id,
-            attachment=attachment,
-            message=f"📧 Emails: {len(emails)}",
-            random_id=0
-        )
-    except Exception as e:
-        await event.ctx_api.messages.send(
-            peer_id=peer_id,
-            message=f"❌ Ошибка при отправке файла: {e}",
-            random_id=0
-        )
-
-    await answer_event(event)
-
-
-@chat_labeler.raw_event(
-    GroupEventType.MESSAGE_EVENT,
-    MessageEvent,
-    PayloadRule({"cmd": "admin_email_step"}))
-async def ask_email_step(event: MessageEvent):
-    current = await get_email_step()
-    await event.ctx_api.messages.send(
-        peer_id=event.peer_id,
-        message=TEXTS.get('text_ask_email_step').format(current),
-        random_id=0
-    )
-    await event.ctx_api.state_dispenser.set(
-        event.peer_id, EmailStepState.WAITING_FOR_STEP)
-    await answer_event(event)
-
-
-@chat_labeler.message(state=EmailStepState.WAITING_FOR_STEP)
-async def process_email_step(message: Message):
-    if message.text.startswith('/'):
-        return
-
-    try:
-        step = int(message.text.strip())
-        if step < 1:
-            raise ValueError
-    except ValueError:
-        await message.answer(TEXTS.get('text_email_step_invalid'))
-        return
-
-    await set_email_step(step)
-    await message.answer(
-        TEXTS.get('text_email_step_saved').format(step),
-        keyboard=get_admin_keyboard())
-    await message.ctx_api.state_dispenser.delete(message.peer_id)
-
-
-@chat_labeler.raw_event(
-    GroupEventType.MESSAGE_EVENT,
-    MessageEvent,
-    PayloadRule({"cmd": "admin_email_text"}))
-async def ask_email_text(event: MessageEvent):
-    current = await get_email_text()
-    await event.ctx_api.messages.send(
-        peer_id=event.peer_id,
-        message=TEXTS.get('text_ask_email_text').format(current),
-        random_id=0
-    )
-    await event.ctx_api.state_dispenser.set(
-        event.peer_id, EmailTextState.WAITING_FOR_TEXT)
-    await answer_event(event)
-
-
-@chat_labeler.message(state=EmailTextState.WAITING_FOR_TEXT)
-async def process_email_text(message: Message):
-    if message.text.startswith('/'):
-        return
-
-    await set_email_text(message.text.strip())
-    await message.answer(
-        TEXTS.get('text_email_text_saved'),
-        keyboard=get_admin_keyboard())
-    await message.ctx_api.state_dispenser.delete(message.peer_id)

@@ -3,7 +3,6 @@ import asyncio
 import logging
 from typing import Dict
 
-logger = logging.getLogger(__name__)
 from vkbottle.bot import Message, MessageEvent
 from vkbottle import GroupEventType
 from vkbottle.dispatch.rules.base import FuncRule, PayloadRule
@@ -18,6 +17,8 @@ from unakovskaya_bot.app.clients.vk.keyboards.userkb import next_link_btn
 from unakovskaya_bot.app.clients.vk.handlers.manage_admin import \
     show_links_list
 from unakovskaya_bot.app.clients.vk.utils import answer_event
+
+logger = logging.getLogger(__name__)
 
 
 user_events: Dict[int, asyncio.Event] = {}
@@ -62,13 +63,14 @@ async def get_links(message: Message):
                         keyboard='{"buttons":[],"inline":true}'
                     )
                 except Exception as e:
-                    logger.debug("VK edit keyboard error: %s", e)
+                    logger.debug(TEXTS.get('log_vk_edit_keyboard_error'), e)
 
             keyboard = None
             if i < len(links) - 1:
                 keyboard = next_link_btn()
 
-            text_part = f"{link.title}\n\n{link.url}\n\n{link.message_text}"
+            text_part = TEXTS.get('text_link_format').format(
+                title=link.title, url=link.url, message_text=link.message_text)
             previous_msg = await message.answer(text_part, keyboard=keyboard)
 
             # После нужного шага — запрашиваем email
@@ -81,8 +83,8 @@ async def get_links(message: Message):
                             keyboard='{"buttons":[],"inline":true}'
                         )
                     except Exception as e:
-                        logger.debug("VK edit keyboard error: %s", e)
-                logger.info("VK email request for user %s", user_id)
+                        logger.debug(TEXTS.get('log_vk_edit_keyboard_error'), e)
+                logger.info(TEXTS.get('log_vk_email_request'), user_id)
                 await message.answer(email_text)
                 loop = asyncio.get_running_loop()
                 future = loop.create_future()
@@ -91,11 +93,10 @@ async def get_links(message: Message):
                     email = await asyncio.wait_for(
                         asyncio.shield(future), timeout=EMAIL_TIMEOUT)
                     await add_email(user_id, email, 'vk')
-                    logger.info(
-                        "VK email saved for user %s: %s", user_id, email)
+                    logger.info(TEXTS.get('log_vk_email_saved'), user_id, email)
                     await message.answer(TEXTS.get('text_email_saved'))
                 except asyncio.TimeoutError:
-                    logger.info("VK email timeout for user %s", user_id)
+                    logger.info(TEXTS.get('log_vk_email_timeout'), user_id)
                     await message.answer(TEXTS.get('text_email_timeout'))
                 finally:
                     user_email_futures.pop(user_id, None)
