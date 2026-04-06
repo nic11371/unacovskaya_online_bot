@@ -40,9 +40,11 @@ class Command(BaseCommand):
         http_client = AiohttpClient(
             timeout=ClientTimeout(total=None, connect=30, sock_read=35)
         )
+        import unakovskaya_bot.app.clients.vk.labeler as vk_labeler
         api = API(token=VK_BOT_TOKEN, http_client=http_client)
         bot = Bot(api=api)
         bot.labeler.load(chat_labeler)
+        vk_labeler.state_dispenser = bot.state_dispenser
 
         logger.info(TEXTS.get("text_start_vk_bot"))
         bot.run_forever()

@@ -3,6 +3,7 @@ from vkbottle import GroupEventType
 from vkbottle.bot import Message, MessageEvent
 from vkbottle.dispatch.rules.base import PayloadRule, FuncRule
 from unakovskaya_bot.static.texts import TEXTS
+import unakovskaya_bot.app.clients.vk.labeler as vk_labeler
 from unakovskaya_bot.app.clients.vk.labeler import chat_labeler
 from unakovskaya_bot.app.clients.vk.states.states import AddLinkState
 from unakovskaya_bot.app.videolinks_services import add_video_link, get_links
@@ -26,7 +27,7 @@ async def set_admin(message: Message):
     PayloadRule({"cmd": "admin_add"}))
 async def start_add_link(event: MessageEvent):
     await event.edit_message(TEXTS.get('text_title_step'))
-    await event.ctx_api.state_dispenser.set(
+    await vk_labeler.state_dispenser.set(
         event.peer_id, AddLinkState.WAITING_FOR_TITLE)
     await answer_event(event)
 
@@ -36,7 +37,7 @@ async def process_title(message: Message):
     if message.text.startswith('/'):
         return
 
-    await message.ctx_api.state_dispenser.set(
+    await vk_labeler.state_dispenser.set(
         message.peer_id,
         AddLinkState.WAITING_FOR_URL,
         title=message.text
@@ -52,10 +53,10 @@ async def process_url(message: Message):
         await message.answer(TEXTS.get('text_wrong_link'))
         return
 
-    state_data = await message.ctx_api.state_dispenser.get(message.peer_id)
+    state_data = await vk_labeler.state_dispenser.get(message.peer_id)
     title = state_data.payload.get('title')
 
-    await message.ctx_api.state_dispenser.set(
+    await vk_labeler.state_dispenser.set(
         message.peer_id,
         AddLinkState.WAITING_FOR_TEXT,
         title=title,
@@ -69,7 +70,7 @@ async def process_text(message: Message):
     if message.text.startswith('/'):
         return
 
-    state_data = await message.ctx_api.state_dispenser.get(message.peer_id)
+    state_data = await vk_labeler.state_dispenser.get(message.peer_id)
     data = state_data.payload
 
     new_order = await add_video_link(
@@ -81,7 +82,7 @@ async def process_text(message: Message):
     await message.answer(
         f"{TEXTS.get('text_link_added')} {new_order}",
         keyboard=get_admin_keyboard())
-    await message.ctx_api.state_dispenser.delete(message.peer_id)
+    await vk_labeler.state_dispenser.delete(message.peer_id)
 
 
 @chat_labeler.raw_event(
