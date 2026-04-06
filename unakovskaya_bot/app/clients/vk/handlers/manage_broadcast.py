@@ -3,6 +3,7 @@ from vkbottle import GroupEventType
 from vkbottle.bot import Message, MessageEvent
 from vkbottle.dispatch.rules.base import PayloadRule
 from unakovskaya_bot.static.texts import TEXTS
+import unakovskaya_bot.app.clients.vk.labeler as vk_labeler
 from unakovskaya_bot.app.clients.vk.labeler import chat_labeler
 from unakovskaya_bot.app.clients.vk.states.states import BroadcastState
 from unakovskaya_bot.app.clients.vk.utils import answer_event
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
     PayloadRule({"cmd": "admin_article"}))
 async def start_article(event: MessageEvent):
     await event.edit_message(TEXTS.get('text_admin_article'))
-    await event.ctx_api.state_dispenser.set(
+    await vk_labeler.state_dispenser.set(
         event.peer_id, BroadcastState.WAITING_FOR_MESSAGE)
     await answer_event(event)
 
@@ -67,4 +68,4 @@ async def process_broadcast(message: Message):
         logger.error(TEXTS.get('log_vk_broadcast_fail_queue'), e)
         await message.answer(TEXTS.get('text_broadcast_error').format(error=e))
 
-    await message.ctx_api.state_dispenser.delete(message.peer_id)
+    await vk_labeler.state_dispenser.delete(message.peer_id)

@@ -4,6 +4,7 @@ from vkbottle import GroupEventType
 from vkbottle.bot import Message, MessageEvent
 from vkbottle.dispatch.rules.base import PayloadRule
 from unakovskaya_bot.static.texts import TEXTS
+import unakovskaya_bot.app.clients.vk.labeler as vk_labeler
 from unakovskaya_bot.app.clients.vk.labeler import chat_labeler
 from unakovskaya_bot.app.clients.vk.states.states import EmailStepState, \
     EmailTextState
@@ -78,7 +79,7 @@ async def ask_email_step(event: MessageEvent):
         message=TEXTS.get('text_ask_email_step').format(current),
         random_id=0
     )
-    await event.ctx_api.state_dispenser.set(
+    await vk_labeler.state_dispenser.set(
         event.peer_id, EmailStepState.WAITING_FOR_STEP)
     await answer_event(event)
 
@@ -100,7 +101,7 @@ async def process_email_step(message: Message):
     await message.answer(
         TEXTS.get('text_email_step_saved').format(step),
         keyboard=get_admin_keyboard())
-    await message.ctx_api.state_dispenser.delete(message.peer_id)
+    await vk_labeler.state_dispenser.delete(message.peer_id)
 
 
 @chat_labeler.raw_event(
@@ -114,7 +115,7 @@ async def ask_email_text(event: MessageEvent):
         message=TEXTS.get('text_ask_email_text').format(current),
         random_id=0
     )
-    await event.ctx_api.state_dispenser.set(
+    await vk_labeler.state_dispenser.set(
         event.peer_id, EmailTextState.WAITING_FOR_TEXT)
     await answer_event(event)
 
@@ -128,4 +129,4 @@ async def process_email_text(message: Message):
     await message.answer(
         TEXTS.get('text_email_text_saved'),
         keyboard=get_admin_keyboard())
-    await message.ctx_api.state_dispenser.delete(message.peer_id)
+    await vk_labeler.state_dispenser.delete(message.peer_id)
