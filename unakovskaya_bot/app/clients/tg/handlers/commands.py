@@ -21,12 +21,7 @@ async def start(message: Message, state: FSMContext):
         first_name=message.from_user.first_name,
         last_name=message.from_user.last_name,
     )
-    try:
-        admin_id = int(TG_BOT_USER_ADMIN)
-    except (ValueError, TypeError):
-        admin_id = None
-
-    if admin_id and admin_id == message.from_user.id:
+    if message.from_user.id in TG_BOT_USER_ADMIN:
         await set_admin(message)
     else:
         await unset_user_admin(message.from_user.id, platform='tg')
@@ -37,12 +32,7 @@ async def start(message: Message, state: FSMContext):
 async def admin_start(message: Message, state: FSMContext):
     await state.clear()
     # Проверяем актуальность админа из ENV
-    try:
-        admin_id = int(TG_BOT_USER_ADMIN)
-    except (ValueError, TypeError):
-        admin_id = None
-
-    if admin_id != message.from_user.id:
+    if message.from_user.id not in TG_BOT_USER_ADMIN:
         await unset_user_admin(message.from_user.id, platform='tg')
 
     if not await is_user_admin(message.from_user.id, platform='tg'):

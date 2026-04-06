@@ -34,12 +34,7 @@ async def start_handler(message: Message):
         logger.error(TEXTS.get('log_vk_start_fail_sync'), user.id, e)
         return
 
-    try:
-        admin_id = int(VK_BOT_USER_ADMIN)
-    except (ValueError, TypeError):
-        admin_id = None
-
-    if admin_id and admin_id == message.from_id:
+    if message.from_id in VK_BOT_USER_ADMIN:
         await set_admin(message)
     else:
         await unset_user_admin(message.from_id, platform='vk')
@@ -54,12 +49,7 @@ async def start_from_button(message: Message):
 
 @chat_labeler.message(text="/admin")
 async def admin_start(message: Message):
-    try:
-        admin_id = int(VK_BOT_USER_ADMIN)
-    except (ValueError, TypeError):
-        admin_id = None
-
-    if not admin_id or admin_id != message.from_id:
+    if message.from_id not in VK_BOT_USER_ADMIN:
         await message.answer(TEXTS.get('text_restrict_admin'))
         return
 

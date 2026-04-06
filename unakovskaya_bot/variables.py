@@ -21,12 +21,12 @@ DATABASE_PORT = os.getenv('DATABASE_PORT')
 BASE_URL = os.getenv("BASE_URL")
 
 WEBHOOK_PATH_VK = f'/{VK_BOT_TOKEN}'
-VK_BOT_USER_ADMIN = os.getenv('VK_BOT_USER_ADMIN')
+VK_BOT_USER_ADMIN = {int(x) for x in os.getenv('VK_BOT_USER_ADMIN', '').split(',') if x.strip()}
 
 WEBHOOK_PATH_TG = f'/{TG_BOT_TOKEN}'
 TG_BOT_HOST = os.getenv("TG_BOT_HOST", "0.0.0.0")
 TG_BOT_PORT = int(os.getenv("TG_BOT_PORT") or 8080)
-TG_BOT_USER_ADMIN = int(os.getenv("TG_BOT_USER_ADMIN") or 0)
+TG_BOT_USER_ADMIN = {int(x) for x in os.getenv('TG_BOT_USER_ADMIN', '').split(',') if x.strip()}
 
 DELAY_LINK = int(os.getenv('DELAY_LINK') or 5)
 DELAY_TG_MAIL = float(os.getenv('DELAY_TG_MAIL') or 0.2)
