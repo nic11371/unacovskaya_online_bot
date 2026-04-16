@@ -4,14 +4,26 @@ sync:
 docker-build:
 	docker compose build
 
+docker-build-tg-foreign:
+	docker compose -f docker-compose.tg-foreign.yml build
+
 docker-up:
 	docker compose up -d
+
+docker-up-tg-foreign:
+	docker compose -f docker-compose.tg-foreign.yml up -d
 
 docker-down:
 	docker compose down
 
+docker-down-tg-foreign:
+	docker compose -f docker-compose.tg-foreign.yml down
+
 docker-logs:
 	docker compose logs -f
+
+docker-logs-tg-foreign:
+	docker compose -f docker-compose.tg-foreign.yml logs -f
 
 docker-restart:
 	docker compose down && docker compose up -d

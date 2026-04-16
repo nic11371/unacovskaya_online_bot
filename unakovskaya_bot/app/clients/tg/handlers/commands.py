@@ -5,8 +5,11 @@ from unakovskaya_bot.variables import TG_BOT_USER_ADMIN
 from unakovskaya_bot.static.texts import TEXTS
 from unakovskaya_bot.app.clients.tg.router import router
 from unakovskaya_bot.app.clients.tg.keyboards.userkb import get_admin_keyboard
-from unakovskaya_bot.app.user_services import sync_user, is_user_admin, \
-    unset_user_admin
+from unakovskaya_bot.app.clients.tg.backend import (
+    is_user_admin,
+    sync_user,
+    unset_user_admin,
+)
 from unakovskaya_bot.app.clients.tg.handlers.manage_admin import set_admin
 from unakovskaya_bot.app.clients.tg.handlers.manage_links import get_links
 

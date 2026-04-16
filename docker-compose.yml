@@ -38,6 +38,18 @@ services:
       db:
         condition: service_healthy
 
+  # ── Django Web / Internal API ────────────────────────────────────────────────
+  web:
+    build: .
+    command: uv run python manage.py runserver 0.0.0.0:8000
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
   # ── Telegram бот ─────────────────────────────────────────────────────────────
   tg-bot:
     build: .

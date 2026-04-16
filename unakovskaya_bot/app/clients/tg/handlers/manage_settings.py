@@ -6,7 +6,7 @@ from unakovskaya_bot.static.texts import TEXTS
 from unakovskaya_bot.app.clients.tg.router import router
 from unakovskaya_bot.app.clients.tg.states.states import EmailStepState, \
     EmailTextState
-from unakovskaya_bot.app.user_services import (
+from unakovskaya_bot.app.clients.tg.backend import (
     get_user_emails,
     get_email_step,
     set_email_step,

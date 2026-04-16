@@ -10,11 +10,11 @@ logger = logging.getLogger(__name__)
 @shared_task(bind=True, max_retries=3)
 def broadcast_tg(self, user_ids, from_chat_id, message_id, admin_chat_id):
     """Рассылка сообщения всем TG-пользователям."""
-    from aiogram import Bot
-    from unakovskaya_bot.variables import TG_BOT_TOKEN, DELAY_TG_MAIL
+    from unakovskaya_bot.variables import DELAY_TG_MAIL
+    from unakovskaya_bot.app.clients.tg.bot import create_tg_bot
 
     async def _run():
-        bot = Bot(token=TG_BOT_TOKEN)
+        bot = create_tg_bot()
         count = 0
         failed = 0
         try:

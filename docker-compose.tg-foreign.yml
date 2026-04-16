@@ -1,0 +1,38 @@
+services:
+
+  # ── Redis для FSM и Celery на foreign VPS ────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_tg_foreign:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Telegram бот на foreign VPS ──────────────────────────────────────────────
+  tg-bot:
+    build: .
+    command: uv run python manage.py run_tg_bot
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${TG_BOT_PORT:-8080}:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # ── Celery воркер для TG-рассылок ────────────────────────────────────────────
+  celery-tg:
+    build: .
+    command: uv run celery -A unakovskaya_bot worker --loglevel=info
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  redis_tg_foreign:

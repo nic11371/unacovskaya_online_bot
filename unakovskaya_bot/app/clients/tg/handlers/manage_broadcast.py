@@ -6,7 +6,7 @@ from unakovskaya_bot.static.texts import TEXTS
 from unakovskaya_bot.app.clients.tg.router import router
 from unakovskaya_bot.tasks import broadcast_tg
 from unakovskaya_bot.app.clients.tg.states.states import BroadcastState
-from unakovskaya_bot.app.user_services import get_all_tg_users
+from unakovskaya_bot.app.clients.tg.backend import get_all_tg_users
 
 logger = logging.getLogger(__name__)
 

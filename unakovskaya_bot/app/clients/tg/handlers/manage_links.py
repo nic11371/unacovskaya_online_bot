@@ -6,13 +6,13 @@ from aiogram.types import Message, CallbackQuery
 from aiogram import F
 from unakovskaya_bot.variables import DELAY_LINK, EMAIL_TIMEOUT
 from unakovskaya_bot.static.texts import TEXTS
-from unakovskaya_bot.app.videolinks_services import (
-    get_active_links,
-    delete_video_link)
-from unakovskaya_bot.app.user_services import (
+from unakovskaya_bot.app.clients.tg.backend import (
     add_email,
+    delete_video_link,
     get_email_step,
-    get_email_text)
+    get_email_text,
+    get_active_links,
+)
 from unakovskaya_bot.app.clients.tg.router import router
 from unakovskaya_bot.app.clients.tg.keyboards.userkb import next_link_btn
 from unakovskaya_bot.app.clients.tg.handlers.manage_admin import \

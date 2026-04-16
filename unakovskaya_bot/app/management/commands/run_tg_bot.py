@@ -9,11 +9,12 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, \
 from aiogram.fsm.storage.redis import RedisStorage
 from unakovskaya_bot.static.texts import TEXTS
 from unakovskaya_bot.variables import (
-    TG_BOT_TOKEN, WEBHOOK_PATH_TG,
-    TG_BOT_HOST, TG_BOT_PORT, BASE_URL,
-    REDIS_URL, SENTRY_DSN
+    WEBHOOK_PATH_TG, TG_BOT_HOST,
+    TG_BOT_PORT, BASE_URL, REDIS_URL,
+    SENTRY_DSN,
 )
 from unakovskaya_bot.app.clients.tg.router import router
+from unakovskaya_bot.app.clients.tg.bot import create_tg_bot
 from unakovskaya_bot.app.clients.tg.handlers import (  # noqa: F401
     commands, manage_links, manage_admin, manage_broadcast, manage_settings
 )
@@ -48,7 +49,7 @@ class Command(BaseCommand):
             logger.error(TEXTS.get('text_log_variable_err'))
             return
 
-        bot = Bot(token=TG_BOT_TOKEN)
+        bot = create_tg_bot()
         storage = RedisStorage.from_url(REDIS_URL)
         dp = Dispatcher(storage=storage)
 

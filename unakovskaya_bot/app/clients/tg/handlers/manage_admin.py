@@ -5,8 +5,11 @@ from aiogram.fsm.context import FSMContext
 from unakovskaya_bot.static.texts import TEXTS
 from unakovskaya_bot.app.clients.tg.router import router
 from unakovskaya_bot.app.clients.tg.states.states import AddLinkState
-from unakovskaya_bot.app.videolinks_services import add_video_link, get_links
-from unakovskaya_bot.app.user_services import set_user_admin
+from unakovskaya_bot.app.clients.tg.backend import (
+    add_video_link,
+    get_links,
+    set_user_admin,
+)
 from unakovskaya_bot.app.clients.tg.keyboards.userkb import (
     get_admin_keyboard,
     admin_back_btn,

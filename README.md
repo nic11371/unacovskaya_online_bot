@@ -80,9 +80,12 @@ docker compose up -d --build
 | Команда | Описание |
 |---|---|
 | `make docker-up` | Запустить все сервисы в фоне |
+| `make docker-up-tg-foreign` | Запустить только foreign TG стек |
 | `make docker-down` | Остановить все сервисы |
+| `make docker-down-tg-foreign` | Остановить foreign TG стек |
 | `make docker-restart` | Перезапустить все сервисы |
 | `make docker-logs` | Смотреть логи всех сервисов |
+| `make docker-logs-tg-foreign` | Смотреть логи foreign TG стека |
 | `docker compose logs -f vk-bot` | Логи только VK бота |
 | `docker compose logs -f tg-bot` | Логи только TG бота |
 | `docker compose logs -f celery` | Логи Celery-воркера |
@@ -94,9 +97,86 @@ docker compose up -d --build
 | `db` | PostgreSQL |
 | `redis` | Redis (брокер Celery) |
 | `migrate` | Применение миграций (запускается один раз) |
+| `web` | Django web, admin и internal API |
 | `tg-bot` | Telegram бот |
 | `vk-bot` | ВКонтакте бот |
 | `celery` | Воркер для рассылок |
+
+## Двухсерверная схема
+
+Если Telegram недоступен с основного сервера, можно вынести `tg-bot` на foreign VPS.
+
+### Что где живет
+
+- Основной сервер: `web`, `db`, `redis`, `vk-bot`, основной `celery`
+- Foreign VPS: `tg-bot`, `celery-tg`, локальный `redis`
+
+### Как они общаются
+
+- `tg-bot` обращается к Telegram API напрямую с foreign VPS
+- `tg-bot` обращается к основному Django через защищенный `internal-api`
+- Аутентификация между серверами идет через заголовок `X-Internal-Token`
+
+### 1. Основной сервер
+
+Запустите Django web, чтобы были доступны admin и `internal-api`:
+
+```bash
+docker compose up -d web db redis migrate vk-bot celery
+```
+
+Добавьте в `.env` на основном сервере:
+
+```env
+INTERNAL_API_TOKEN=replace_with_long_random_secret
+WEB_PORT=8000
+ALLOWED_HOSTS=app.example.com,127.0.0.1,localhost
+```
+
+Потом отдайте `web:8000` наружу через Nginx или другой reverse proxy.
+
+### 2. Foreign VPS
+
+Скопируйте проект на foreign VPS и создайте `.env` по примеру:
+
+```bash
+cp .env.foreign.example .env
+```
+
+Минимально заполните:
+
+```env
+TG_BOT_TOKEN=...
+TG_BOT_USER_ADMIN=...
+BASE_URL=https://tg-bot.example.com
+
+APP_API_BASE_URL=https://app.example.com
+APP_API_TOKEN=replace_with_same_long_random_secret
+
+REDIS_URL=redis://redis:6379/0
+TG_BOT_FORCE_IPV4=true
+TG_BOT_REQUEST_TIMEOUT=120
+```
+
+Запуск:
+
+```bash
+docker compose -f docker-compose.tg-foreign.yml up -d --build
+```
+
+### 3. Что уже переключается автоматически
+
+Если задан `APP_API_BASE_URL`, Telegram хендлеры больше не ходят напрямую в Django ORM. Они автоматически переключаются на HTTP backend через `internal-api`.
+
+Это касается:
+
+- синхронизации пользователей
+- проверки и выдачи админских прав
+- чтения и удаления ссылок
+- настроек шага и текста запроса email
+- сохранения email
+- выгрузки email
+- получения списка TG пользователей для рассылки
 
 ---
 
@@ -180,6 +260,14 @@ make start-celery
 | `DELAY_VK_MAIL` | Задержка между сообщениями при рассылке VK (секунды) | `0.2` |
 | `EMAIL_AFTER_STEP` | Шаг, после которого запрашивается email (начальное значение) | `3` |
 | `EMAIL_TIMEOUT` | Время ожидания ввода email пользователем (секунды) | `600` |
+| `WEB_PORT` | Порт Django web / internal API | `8000` |
+| `APP_API_BASE_URL` | Базовый URL основного Django для foreign TG бота | `""` |
+| `APP_API_TOKEN` | Токен доступа foreign TG бота к internal API | `""` |
+| `APP_API_TIMEOUT` | Таймаут запросов foreign TG бота к internal API | `30` |
+| `INTERNAL_API_TOKEN` | Токен защиты internal API на основном сервере | `""` |
+| `TG_BOT_REQUEST_TIMEOUT` | Таймаут исходящих запросов к Telegram API | `60` |
+| `TG_BOT_CONNECTION_LIMIT` | Лимит одновременных TG-соединений | `100` |
+| `TG_BOT_FORCE_IPV4` | Принудительный IPv4 для Telegram API | `false` |
 
 > Шаг запроса email можно менять прямо из админ-панели бота — значение сохраняется в БД и применяется без перезапуска.
 
